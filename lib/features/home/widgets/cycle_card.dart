@@ -284,7 +284,7 @@ class _BlushyCycleCardState extends State<BlushyCycleCard> with TickerProviderSt
                 children: [
                   Text(
                     _getTitleForMode(mode),
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.poppins(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
                       color: BlushyColors.text,
@@ -310,7 +310,7 @@ class _BlushyCycleCardState extends State<BlushyCycleCard> with TickerProviderSt
                         const SizedBox(width: 4),
                         Text(
                           'Edit Cycle',
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.poppins(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
                             color: BlushyColors.text,
@@ -412,7 +412,7 @@ class _BlushyCycleCardState extends State<BlushyCycleCard> with TickerProviderSt
             children: [
               Text(
                 _activePhaseName,
-                style: GoogleFonts.cormorantGaramond(
+                style: GoogleFonts.poppins(
                   fontSize: 26,
                   fontWeight: FontWeight.w700,
                   color: activeColor,
@@ -422,7 +422,7 @@ class _BlushyCycleCardState extends State<BlushyCycleCard> with TickerProviderSt
               const SizedBox(height: 6),
               Text(
                 mode == CycleCardMode.learning ? 'Gathering data... Day $_activeDayLabel' : 'Day $_activeDayLabel of 28',
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: BlushyColors.text,
@@ -431,7 +431,7 @@ class _BlushyCycleCardState extends State<BlushyCycleCard> with TickerProviderSt
               const SizedBox(height: 4),
               Text(
                 'Expected Period: August 2',
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   fontSize: 12,
                   color: BlushyColors.secondaryText,
                 ),
@@ -442,17 +442,17 @@ class _BlushyCycleCardState extends State<BlushyCycleCard> with TickerProviderSt
       case CycleCardMode.variable:
         return Text(
           "Your cycle length is varying. Log your symptoms daily so Sia can adjust predictions.",
-          style: GoogleFonts.inter(fontSize: 14, color: BlushyColors.text),
+          style: GoogleFonts.poppins(fontSize: 14, color: BlushyColors.text),
         );
       case CycleCardMode.wellbeing:
         return Text(
           "Tracking is disabled. Focus on your daily energy, mood, and sleep.",
-          style: GoogleFonts.inter(fontSize: 14, color: BlushyColors.text),
+          style: GoogleFonts.poppins(fontSize: 14, color: BlushyColors.text),
         );
       case CycleCardMode.lifeContext:
         return Text(
           "Your recommendations are adapted to your current life stage.",
-          style: GoogleFonts.inter(fontSize: 14, color: BlushyColors.text),
+          style: GoogleFonts.poppins(fontSize: 14, color: BlushyColors.text),
         );
     }
   }
@@ -472,7 +472,7 @@ class _BlushyCycleCardState extends State<BlushyCycleCard> with TickerProviderSt
         const SizedBox(width: 4),
         Text(
           label,
-          style: GoogleFonts.inter(
+          style: GoogleFonts.poppins(
             fontSize: 10,
             color: BlushyColors.secondaryText,
           ),
@@ -506,7 +506,7 @@ class SignatureCyclePathPainter extends CustomPainter {
     final activeLength = totalLength * progress;
 
     final backgroundPaint = Paint()
-      ..color = const Color(0xFFF3F4F6)
+      ..color = BlushyColors.border
       ..style = PaintingStyle.stroke
       ..strokeWidth = 6.0
       ..strokeCap = StrokeCap.round;

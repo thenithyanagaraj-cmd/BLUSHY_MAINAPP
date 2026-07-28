@@ -14,7 +14,7 @@ class BlushyCommunitySection extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
           child: Text(
             'Recommended For You',
-            style: GoogleFonts.cormorantGaramond(
+            style: GoogleFonts.poppins(
               fontSize: 22,
               fontWeight: FontWeight.w700,
               color: BlushyColors.text,
@@ -89,7 +89,7 @@ class BlushyCommunitySection extends StatelessWidget {
               Expanded(
                 child: Text(
                   tag,
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.poppins(
                     fontSize: 9,
                     fontWeight: FontWeight.w700,
                     color: BlushyColors.primary,
@@ -103,7 +103,7 @@ class BlushyCommunitySection extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             title,
-            style: GoogleFonts.cormorantGaramond(
+            style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.w700,
               color: BlushyColors.text,
@@ -113,7 +113,7 @@ class BlushyCommunitySection extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             subtitle,
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 11,
               color: BlushyColors.secondaryText,
               height: 1.4,
@@ -129,7 +129,7 @@ class BlushyCommunitySection extends StatelessWidget {
               Expanded(
                 child: Text(
                   contextWhyLabel,
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.poppins(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
                     color: BlushyColors.accent,
@@ -139,7 +139,7 @@ class BlushyCommunitySection extends StatelessWidget {
               ),
               Text(
                 statsLabel,
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   fontSize: 9,
                   color: BlushyColors.secondaryText,
                 ),

@@ -280,7 +280,7 @@ class _EmailAuthFlowState extends State<EmailAuthFlow> {
                       Expanded(
                         child: Text(
                           _generalError!,
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.poppins(
                             color: BlushyColors.primary,
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
@@ -321,7 +321,7 @@ class _EmailAuthFlowState extends State<EmailAuthFlow> {
       children: [
         Text(
           "What's your email?",
-          style: GoogleFonts.cormorantGaramond(
+          style: GoogleFonts.poppins(
             fontSize: 32,
             fontWeight: FontWeight.w700,
             color: BlushyColors.text,
@@ -330,7 +330,7 @@ class _EmailAuthFlowState extends State<EmailAuthFlow> {
         const SizedBox(height: 8),
         Text(
           "We'll use this to secure your private wellness space.",
-          style: GoogleFonts.inter(
+          style: GoogleFonts.poppins(
             fontSize: 15,
             color: BlushyColors.secondaryText,
           ),
@@ -396,7 +396,7 @@ class _EmailAuthFlowState extends State<EmailAuthFlow> {
       children: [
         Text(
           "Create your password",
-          style: GoogleFonts.cormorantGaramond(
+          style: GoogleFonts.poppins(
             fontSize: 32,
             fontWeight: FontWeight.w700,
             color: BlushyColors.text,
@@ -405,7 +405,7 @@ class _EmailAuthFlowState extends State<EmailAuthFlow> {
         const SizedBox(height: 8),
         Text(
           "Ensure your space is private and secure.",
-          style: GoogleFonts.inter(
+          style: GoogleFonts.poppins(
             fontSize: 15,
             color: BlushyColors.secondaryText,
           ),
@@ -464,7 +464,7 @@ class _EmailAuthFlowState extends State<EmailAuthFlow> {
       children: [
         Text(
           "Check your email",
-          style: GoogleFonts.cormorantGaramond(
+          style: GoogleFonts.poppins(
             fontSize: 32,
             fontWeight: FontWeight.w700,
             color: BlushyColors.text,
@@ -473,7 +473,7 @@ class _EmailAuthFlowState extends State<EmailAuthFlow> {
         const SizedBox(height: 8),
         Text(
           "We sent a verification code to $obscuredEmail",
-          style: GoogleFonts.inter(
+          style: GoogleFonts.poppins(
             fontSize: 15,
             color: BlushyColors.secondaryText,
           ),
@@ -491,7 +491,7 @@ class _EmailAuthFlowState extends State<EmailAuthFlow> {
                 keyboardType: TextInputType.number,
                 textAlign: TextAlign.center,
                 maxLength: 1,
-                style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.bold),
+                style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.bold),
                 decoration: InputDecoration(
                   counterText: "",
                   border: OutlineInputBorder(
@@ -519,7 +519,7 @@ class _EmailAuthFlowState extends State<EmailAuthFlow> {
           Text(
             _codeError!,
             textAlign: TextAlign.center,
-            style: GoogleFonts.inter(color: BlushyColors.primary, fontSize: 14),
+            style: GoogleFonts.poppins(color: BlushyColors.primary, fontSize: 14),
           ),
         ],
         const SizedBox(height: 32),
@@ -542,7 +542,7 @@ class _EmailAuthFlowState extends State<EmailAuthFlow> {
                     )
                   : Text(
                       'Resend code',
-                      style: GoogleFonts.inter(color: BlushyColors.primary, fontWeight: FontWeight.bold),
+                      style: GoogleFonts.poppins(color: BlushyColors.primary, fontWeight: FontWeight.bold),
                     ),
             ),
             TextButton(
@@ -554,7 +554,7 @@ class _EmailAuthFlowState extends State<EmailAuthFlow> {
               },
               child: Text(
                 'Change email',
-                style: GoogleFonts.inter(color: BlushyColors.secondaryText),
+                style: GoogleFonts.poppins(color: BlushyColors.secondaryText),
               ),
             ),
           ],
@@ -569,7 +569,7 @@ class _EmailAuthFlowState extends State<EmailAuthFlow> {
       children: [
         Text(
           "Welcome back",
-          style: GoogleFonts.cormorantGaramond(
+          style: GoogleFonts.poppins(
             fontSize: 32,
             fontWeight: FontWeight.w700,
             color: BlushyColors.text,
@@ -578,7 +578,7 @@ class _EmailAuthFlowState extends State<EmailAuthFlow> {
         const SizedBox(height: 8),
         Text(
           "Log in to retrieve your personalized health workspace.",
-          style: GoogleFonts.inter(
+          style: GoogleFonts.poppins(
             fontSize: 15,
             color: BlushyColors.secondaryText,
           ),
@@ -616,7 +616,7 @@ class _EmailAuthFlowState extends State<EmailAuthFlow> {
             },
             child: Text(
               'Forgot password?',
-              style: GoogleFonts.inter(color: BlushyColors.secondaryText),
+              style: GoogleFonts.poppins(color: BlushyColors.secondaryText),
             ),
           ),
         ),
@@ -636,7 +636,7 @@ class _EmailAuthFlowState extends State<EmailAuthFlow> {
       children: [
         Text(
           "Reset Password",
-          style: GoogleFonts.cormorantGaramond(
+          style: GoogleFonts.poppins(
             fontSize: 32,
             fontWeight: FontWeight.w700,
             color: BlushyColors.text,
@@ -645,7 +645,7 @@ class _EmailAuthFlowState extends State<EmailAuthFlow> {
         const SizedBox(height: 8),
         Text(
           "Enter your email to receive recovery instructions.",
-          style: GoogleFonts.inter(
+          style: GoogleFonts.poppins(
             fontSize: 15,
             color: BlushyColors.secondaryText,
           ),
@@ -679,12 +679,12 @@ class _EmailAuthFlowState extends State<EmailAuthFlow> {
       controller: controller,
       obscureText: obscureText,
       keyboardType: keyboardType,
-      style: GoogleFonts.inter(color: BlushyColors.text),
+      style: GoogleFonts.poppins(color: BlushyColors.text),
       decoration: InputDecoration(
         labelText: labelText,
-        labelStyle: GoogleFonts.inter(color: BlushyColors.secondaryText),
+        labelStyle: GoogleFonts.poppins(color: BlushyColors.secondaryText),
         errorText: errorText,
-        errorStyle: GoogleFonts.inter(color: BlushyColors.primary),
+        errorStyle: GoogleFonts.poppins(color: BlushyColors.primary),
         suffixIcon: suffixIcon,
         filled: true,
         fillColor: BlushyColors.cardBg,
@@ -722,7 +722,7 @@ class _EmailAuthFlowState extends State<EmailAuthFlow> {
             )
           : Text(
               label,
-              style: GoogleFonts.inter(
+              style: GoogleFonts.poppins(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
               ),

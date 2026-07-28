@@ -31,7 +31,7 @@ class BlushyPrimaryActionCard extends StatelessWidget {
               children: [
                 Text(
                   'TODAY\'S NEXT STEP',
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.poppins(
                     fontSize: 9,
                     fontWeight: FontWeight.w700,
                     color: BlushyColors.primary,
@@ -41,7 +41,7 @@ class BlushyPrimaryActionCard extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(
                   'Take a 15-minute walk after lunch.',
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.poppins(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                     color: BlushyColors.text,
@@ -50,7 +50,7 @@ class BlushyPrimaryActionCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   'This aligns with your current Luteal state and has been shown to reduce afternoon fatigue by 14%.',
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.poppins(
                     fontSize: 12,
                     color: BlushyColors.secondaryText,
                     height: 1.3,
@@ -70,7 +70,7 @@ class BlushyPrimaryActionCard extends StatelessWidget {
               ),
               child: Text(
                 'Begin',
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                   color: Colors.white,

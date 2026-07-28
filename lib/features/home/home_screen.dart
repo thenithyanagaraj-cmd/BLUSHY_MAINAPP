@@ -11,6 +11,9 @@ import '../../theme/spacing.dart';
 import 'widgets/my_health_screen.dart';
 import 'widgets/cycle_card.dart';
 import '../sia/sia_screen.dart';
+import '../../core/theme.dart' hide BlushyColors;
+import 'models.dart';
+import 'mock_data.dart';
 
 
 enum HomeWidgetType {
@@ -60,6 +63,42 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
   // Onboarding answers state
   Map<String, dynamic> _onboardingData = {};
   bool _showFirstPeriodTransition = false;
+  bool _isDiscoveryRevealed = false;
+  bool _familyMissionCompleted = false;
+  bool _prepMissionCompleted = false;
+  
+  // Before You Go states
+  int? _beforeYouGoSelectedIndex;
+  final TextEditingController _beforeYouGoController = TextEditingController();
+  bool _beforeYouGoSubmitted = false;
+
+  final List<Map<String, dynamic>> _beforeYouGoQuestions = [
+    {
+      "question": "Have you been thinking about your first period lately?",
+      "options": ["A little", "Quite a lot", "Not really"],
+      "reply": "Thank you for telling me. I'll remember that."
+    },
+    {
+      "question": "Did anything make you curious about your body today?",
+      "options": ["Yes", "Maybe", "Not today"],
+      "reply": "I'm really glad you shared that with me."
+    },
+    {
+      "question": "Was there anything that made you smile today?",
+      "options": ["Family", "Friends", "Something else"],
+      "reply": "That's beautiful. I'll keep this in mind."
+    },
+    {
+      "question": "Have you noticed any changes in your body recently?",
+      "options": ["A few changes", "No changes", "Not sure"],
+      "reply": "That's completely normal. Your body is growing beautifully."
+    },
+    {
+      "question": "Did anything feel confusing this week?",
+      "options": ["Yes, a bit", "No, all clear", "Not sure"],
+      "reply": "I'll be here whenever you're ready to talk about it."
+    }
+  ];
 
   // firstPeriodNotStarted interactive states
   final List<String> _lessons = [
@@ -88,6 +127,13 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
     "Trusted teacher": false,
   };
   final Set<String> _startedSavedArticles = {};
+
+  // Today's Check-in state variables
+  String _checkInFlow = 'No Period';
+  final Set<String> _checkInSymptoms = {};
+  String _checkInMood = 'Calm';
+  String _checkInEnergy = 'Balanced';
+  bool _checkInSaved = false;
 
   // livingWithMyCycle interactive states
   String _livingDiscoverTopic = 'Cycle Health';
@@ -174,6 +220,8 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
   String? _periWater = '2L';
   String? _periExercise = 'Walk';
 
+  late PeriodConfirmationState _periodConfirmationState;
+
   // menopause interactive states
   String _menoDiscoverTopic = 'Understanding Menopause';
   String _menoCommunityTab = 'Healthy Ageing';
@@ -216,6 +264,13 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
   @override
   void initState() {
     super.initState();
+    _periodConfirmationState = PeriodConfirmationState(
+      hasLoggedPeriod: false,
+      predictedStartDate: DateTime.now().add(const Duration(days: 9)),
+      actualStartDate: null,
+      isDismissed: false,
+      status: 'pending',
+    );
     _animController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
@@ -232,12 +287,14 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
   void _loadOnboardingData() {
     try {
       final decoded = BlushyStorage.read('onboarding_temp_profile.json');
-      if (decoded.isNotEmpty) {
-        setState(() {
-          _onboardingData = decoded['profile'] ?? {};
-        });
-      }
-    } catch (_) {}
+      setState(() {
+        _onboardingData = decoded['profile'] ?? {};
+      });
+    } catch (_) {
+      setState(() {
+        _onboardingData = {};
+      });
+    }
   }
 
   void _checkFirstLaunchCoach() {
@@ -406,7 +463,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           child: LayoutBuilder(
             builder: (context, constraints) {
               final double width = constraints.maxWidth;
-              final padding = width < 768 ? 16.0 : (width <= 1200 ? 24.0 : 48.0);
+              final padding = width < 1200 ? 20.0 : 48.0;
               
               if (width >= 1200) {
                 return Padding(
@@ -524,7 +581,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             children: [
               Text(
                 "TODAY",
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   fontSize: 10,
                   fontWeight: FontWeight.w800,
                   color: BlushyColors.secondaryText,
@@ -534,7 +591,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               const SizedBox(height: 4),
               Text(
                 greetingText,
-                style: GoogleFonts.cormorantGaramond(
+                style: GoogleFonts.poppins(
                   fontSize: 26,
                   fontWeight: FontWeight.bold,
                   color: BlushyColors.text,
@@ -586,19 +643,19 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
       final int cycleDay = isDataLogged
           ? (DateTime.now().difference(pc.lastPeriodStart!).inDays % 28) + 1
           : 1;
-      final greeting = "Good $timeOfDay, $displayName 🌸";
+      final greeting = "Good $timeOfDay, $displayName ";
 
       // 1. Dynamic Hero, Sia Note, and Guidance based on cycle phase
       String heroTitle = "Welcome to Your New Journey";
       String heroDesc = "Your first period is a new chapter. Every cycle teaches you something about your body.";
       String heroInsight = "Day $cycleDay of your cycle • Recovery phase • Your body is gently returning to its baseline. Rest well.";
-      String siaNote = "It's okay if your first few periods aren't regular. That happens to many girls. You don't have to remember everything. We'll guide you along the way. You can ask me absolutely anything.";
+      String siaNote = "This is only your third cycle. Your body is still learning too. You've been checking in consistently this week. We're beginning to understand your rhythm. You can ask me absolutely anything.";
       
       final Map<String, dynamic> discovery = {
-        'title': "How to use a sanitary pad comfortably",
+        'title': "Building healthy habits",
         'readTime': "3 min read",
         'type': "GUIDE",
-        'desc': "Sanitary pads are simple and reliable. Learn how to choose the right size, secure it in place, and when to change it for maximum freshness.",
+        'desc': "Discover how sleep, gentle movement, and proper nourishment build a strong foundation for your cycle health.",
         'imageUrl': "assets/illustrations/pad_guide.png",
         'completedRatio': 0.8,
         'usefulness': "95% helpful today",
@@ -611,14 +668,14 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
       String heroPhaseName = "Recovery Phase";
 
       if (cycleDay <= 5) {
-        //🩸 Period Phase
-        heroTitle = "🌸 Day $cycleDay";
+        // Period Phase
+        heroTitle = " Day $cycleDay";
         heroPhaseName = "Period Phase";
         heroDesc = "Your body is letting go of the old lining. Take things gently today. Hydrate well. A warm compress may help cramps.";
         heroInsight = "Period Phase • You may feel more tired than usual. This is completely normal.";
-        siaNote = "Remember, it is okay to feel tired or just want to rest during your period. Be gentle with yourself today. You might notice mild cramps or breast tenderness. Some people notice lower energy or cramps during this phase. It's completely normal to feel like resting more.";
+        siaNote = "You've been checking in consistently this week. Since you asked about cramps last week, let's see if your body follows a similar pattern this cycle. Remember, it is okay to feel tired or just want to rest during your period.";
         
-        discovery['title'] = "Managing cramps naturally";
+        discovery['title'] = "Managing cramps";
         discovery['desc'] = "From warm compresses to gentle hydration, explore simple and comforting ways to soothe menstrual cramps at home.";
         discovery['readTime'] = "4 min read";
         discovery['type'] = "STORY";
@@ -637,15 +694,15 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           {"user": "Anonymous", "text": "How I told my mum when it first happened. It was a really sweet moment."},
         ]);
       } else if (cycleDay <= 11) {
-        //🌱 Follicular (Growing) Phase
-        heroTitle = "🌸 Day $cycleDay";
+        // Follicular (Growing) Phase
+        heroTitle = " Day $cycleDay";
         heroPhaseName = "Growing Phase";
         heroDesc = "Your body is rebuilding energy after your period. You may feel more energetic over the next few days.";
         heroInsight = "Follicular Phase • Energy is returning. Great day to try something new.";
-        siaNote = "You've completed your first week with confidence, $displayName. I'm so proud of how you are listening to your body's rhythm. Many girls find their energy and focus naturally returning during this week. It's a wonderful time to try new hobbies!";
+        siaNote = "We're beginning to understand your rhythm, $displayName. Your body is still finding its path, and this is only your third cycle. Take this follicular phase to explore what feels good as your natural energy levels return.";
         
-        discovery['title'] = "Why energy returns";
-        discovery['desc'] = "Explore how hormones rise after your period and how they naturally boost your motivation, focus, and physical energy.";
+        discovery['title'] = "Understanding cycle phases";
+        discovery['desc'] = "Learn about the four seasons of your body and how estrogen and progesterone rise and fall to create your rhythm.";
         discovery['readTime'] = "5 min read";
         discovery['type'] = "GUIDE";
         discovery['usefulness'] = "95% helpful today";
@@ -663,15 +720,15 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           {"user": "Anonymous", "text": "Does swimming make cramps feel better or worse?"},
         ]);
       } else if (cycleDay <= 16) {
-        //🌼 Ovulation Phase
-        heroTitle = "🌸 Day $cycleDay";
+        // Ovulation Phase
+        heroTitle = " Day $cycleDay";
         heroPhaseName = "Ovulation Phase";
         heroDesc = "Your body is releasing an egg. Your confidence may feel higher. Stay active, hydrate well, and listen to your inner rhythm.";
         heroInsight = "Ovulation Phase • You may feel more social and expressive.";
-        siaNote = "You may notice your body feels different this week, $displayName. Some people notice higher confidence and a brighter mood this week. You might feel more social! You may observe a clear, stretchy discharge. This is a completely healthy sign that your body is ovulating.";
+        siaNote = "You've been checking in consistently this week. We're beginning to understand your rhythm. This is only your third cycle, so your body is still learning too. Notice how your confidence levels shine during this ovulation phase.";
         
-        discovery['title'] = "What ovulation means";
-        discovery['desc'] = "Understand ovulation and cervical discharge. Learn how this brief phase plays a beautiful role in your overall body awareness.";
+        discovery['title'] = "Understanding discharge";
+        discovery['desc'] = "Observe how your body signals ovulation with clear, stretchy cervical fluid, a natural sign of fertility.";
         discovery['readTime'] = "4 min read";
         discovery['type'] = "GUIDE";
         discovery['usefulness'] = "90% helpful today";
@@ -689,15 +746,15 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           {"user": "Anonymous", "text": "How do you track your second cycle without feeling anxious?"},
         ]);
       } else {
-        //🌙 Luteal Phase
-        heroTitle = "🌸 Day $cycleDay";
+        // Luteal Phase
+        heroTitle = " Day $cycleDay";
         heroPhaseName = "Luteal Phase";
         heroDesc = "Your body is winding down. Be kind to yourself today. Extra sleep and nourishing meals may help.";
         heroInsight = "Luteal Phase • You might notice mood changes or feeling more emotional.";
-        siaNote = "You don't have to remember everything, $displayName. We often see people feel more emotional or tired during this phase. You might notice mood changes, bloating, or appetite changes, and that is completely normal. It's completely normal if your experience is different.";
+        siaNote = "Since you asked about cramps last week, let's see if your body follows a similar pattern as we enter the luteal phase. Remember, your body is still finding its path, and taking time to rest is a beautiful part of this cycle.";
         
-        discovery['title'] = "Mood changes & nutrition";
-        discovery['desc'] = "Learn why mood swings, bloating, and appetite changes occur in the luteal phase and which foods bring comfort.";
+        discovery['title'] = "Why are early cycles irregular?";
+        discovery['desc'] = "Your ovaries are still learning to communicate with your brain. Explore why irregularity is completely normal in your first few years.";
         discovery['readTime'] = "5 min read";
         discovery['type'] = "STORY";
         discovery['usefulness'] = "88% helpful today";
@@ -760,7 +817,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
       };
     } else {
       // BRANCH A: Not Started
-      final greeting = "Good $timeOfDay, $displayName 🌸";
+      final greeting = "Good $timeOfDay, $displayName ";
       String siaNote = "I know growing up can feel confusing sometimes. You don't have to figure everything out alone. I'm always here whenever you have questions. Even the small ones.";
       
       final answers = _onboardingData['answers'] ?? {};
@@ -1059,7 +1116,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               const SizedBox(width: 8),
               Text(
                 "SIA'S DAILY NOTE",
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                   color: BlushyColors.primary,
@@ -1071,7 +1128,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           const SizedBox(height: 20),
           Text(
             "Good Morning, $name",
-            style: GoogleFonts.cormorantGaramond(
+            style: GoogleFonts.poppins(
               fontSize: 32,
               fontWeight: FontWeight.w600,
               color: BlushyColors.text,
@@ -1081,7 +1138,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           const SizedBox(height: 12),
           Text(
             "Growing up happens one step at a time. You don't have to know everything today. We'll learn together.",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 15,
               color: BlushyColors.secondaryText,
               height: 1.45,
@@ -1101,7 +1158,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   ),
                   child: Text(
                     "Ask Sia",
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.poppins(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -1131,7 +1188,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   ),
                   child: Text(
                     "Continue Learning",
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.poppins(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
                     ),
@@ -1157,7 +1214,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             children: [
               Text(
                 "CONTINUE LEARNING",
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                   color: BlushyColors.secondaryText,
@@ -1167,7 +1224,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               const SizedBox(height: 6),
               Text(
                 "Small lessons designed for your stage.",
-                style: GoogleFonts.cormorantGaramond(
+                style: GoogleFonts.poppins(
                   fontSize: 22,
                   fontWeight: FontWeight.w500,
                   color: BlushyColors.text,
@@ -1191,10 +1248,10 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
 
               // Cover colors
               final List<Color> bgColors = [
-                const Color(0xFFFAF0E6),
-                const Color(0xFFF0FFF0),
-                const Color(0xFFF0F8FF),
-                const Color(0xFFFFF0F5),
+                const Color(0xFFFDF2F2),
+                const Color(0xFFFFF5EE),
+                const Color(0xFFF6F0EB),
+                const Color(0xFFFFF7F7),
                 const Color(0xFFFDF5E6),
               ];
               final Color cardColor = bgColors[index % bgColors.length];
@@ -1247,7 +1304,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                               lesson,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.inter(
+                              style: GoogleFonts.poppins(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
                                 color: BlushyColors.text,
@@ -1256,7 +1313,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                             const SizedBox(height: 4),
                             Text(
                               "${3 + (index * 2)} min read",
-                              style: GoogleFonts.inter(
+                              style: GoogleFonts.poppins(
                                 fontSize: 11,
                                 color: BlushyColors.secondaryText,
                               ),
@@ -1300,7 +1357,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                               ),
                               child: Text(
                                 isCompleted ? "Review" : "Resume",
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.poppins(
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
                                   color: isCompleted ? BlushyColors.primary : Colors.white,
@@ -1354,7 +1411,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "CURIOUS TODAY",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -1376,14 +1433,14 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             children: [
               Row(
                 children: [
-                  const Icon(Icons.wb_sunny_outlined, color: Colors.orangeAccent, size: 18),
+                  const Icon(Icons.wb_sunny_outlined, color: BlushyColors.warning, size: 18),
                   const SizedBox(width: 8),
                   Text(
                     "DAILY DISCOVERY",
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.poppins(
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
-                      color: Colors.orangeAccent,
+                      color: BlushyColors.warning,
                     ),
                   ),
                 ],
@@ -1391,7 +1448,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               const SizedBox(height: 12),
               Text(
                 "Sweat glands become more active during puberty. Drinking plenty of water and washing daily helps keep you fresh, confident, and clean.",
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   fontSize: 14,
                   color: BlushyColors.text,
                   height: 1.45,
@@ -1410,7 +1467,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     },
                     child: Text(
                       "Read",
-                      style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                      style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                     ),
                   ),
                   const Spacer(),
@@ -1449,7 +1506,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "Questions Girls Often Ask",
-            style: GoogleFonts.cormorantGaramond(
+            style: GoogleFonts.poppins(
               fontSize: 20,
               fontWeight: FontWeight.w500,
               color: BlushyColors.text,
@@ -1488,7 +1545,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                         item['q']!,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.poppins(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
                           color: BlushyColors.text,
@@ -1514,7 +1571,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "CONNECT",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -1544,7 +1601,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     child: Text(
                       "Girls",
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.poppins(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                         color: _connectTabIndex == 0 ? BlushyColors.text : BlushyColors.secondaryText,
@@ -1565,7 +1622,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     child: Text(
                       "Growing Together",
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.poppins(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                         color: _connectTabIndex == 1 ? BlushyColors.text : BlushyColors.secondaryText,
@@ -1596,7 +1653,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
         children: [
           Text(
             "Supportive Community Preview",
-            style: GoogleFonts.cormorantGaramond(
+            style: GoogleFonts.poppins(
               fontSize: 18,
               fontWeight: FontWeight.bold,
               color: BlushyColors.text,
@@ -1615,7 +1672,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   children: [
                     Text(
                       "How do I track if I haven't got my period yet?",
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.poppins(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                         color: BlushyColors.text,
@@ -1624,7 +1681,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     const SizedBox(height: 2),
                     Text(
                       "You can focus on learning, discharge changes and kits here! Sia helps guide you.",
-                      style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.secondaryText),
+                      style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.secondaryText),
                     ),
                   ],
                 ),
@@ -1636,7 +1693,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.favorite_border, size: 16, color: Colors.redAccent),
+              const Icon(Icons.favorite_border, size: 16, color: BlushyColors.danger),
               const SizedBox(width: 8),
               Expanded(
                 child: Column(
@@ -1644,7 +1701,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   children: [
                     Text(
                       "My mom bought me my first pouch!",
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.poppins(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                         color: BlushyColors.text,
@@ -1653,7 +1710,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     const SizedBox(height: 2),
                     Text(
                       "Preparing together makes it feel exciting and not scary at all.",
-                      style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.secondaryText),
+                      style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.secondaryText),
                     ),
                   ],
                 ),
@@ -1677,7 +1734,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               ),
               child: Text(
                 "Join Community",
-                style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
               ),
             ),
           ),
@@ -1703,12 +1760,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             children: [
               Text(
                 "SHARED READING",
-                style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText, letterSpacing: 1.0),
+                style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText, letterSpacing: 1.0),
               ),
               const SizedBox(height: 8),
               Text(
                 "Share articles about growing up with your parent safely.",
-                style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.text),
+                style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.text),
               ),
               const SizedBox(height: 12),
               Row(
@@ -1724,7 +1781,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                         side: const BorderSide(color: BlushyColors.primary),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
-                      child: Text("Send to Parent", style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.primary, fontWeight: FontWeight.bold)),
+                      child: Text("Send to Parent", style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.primary, fontWeight: FontWeight.bold)),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -1739,7 +1796,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                         side: const BorderSide(color: BlushyColors.primary),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
-                      child: Text("Shared Library", style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.primary, fontWeight: FontWeight.bold)),
+                      child: Text("Shared Library", style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.primary, fontWeight: FontWeight.bold)),
                     ),
                   ),
                 ],
@@ -1762,12 +1819,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             children: [
               Text(
                 "LET'S TALK • WEEKLY PROMPT",
-                style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.orangeAccent, letterSpacing: 1.0),
+                style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.warning, letterSpacing: 1.0),
               ),
               const SizedBox(height: 8),
               Text(
                 "\"What is one thing you've been curious about recently?\"",
-                style: GoogleFonts.cormorantGaramond(fontSize: 18, fontWeight: FontWeight.w600, color: BlushyColors.text),
+                style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w600, color: BlushyColors.text),
               ),
               const SizedBox(height: 14),
               Row(
@@ -1779,12 +1836,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       });
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _letsTalkDiscussed ? Colors.green : BlushyColors.primary,
+                      backgroundColor: _letsTalkDiscussed ? BlushyColors.success : BlushyColors.primary,
                       elevation: 0,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                     ),
-                    child: Text(_letsTalkDiscussed ? "Discussed ✓" : "Discussed", style: GoogleFonts.inter(fontSize: 11, color: Colors.white, fontWeight: FontWeight.bold)),
+                    child: Text(_letsTalkDiscussed ? "Discussed " : "Discussed", style: GoogleFonts.poppins(fontSize: 11, color: Colors.white, fontWeight: FontWeight.bold)),
                   ),
                   const SizedBox(width: 8),
                   OutlinedButton(
@@ -1794,11 +1851,11 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       });
                     },
                     style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: _letsTalkSaved ? Colors.grey : BlushyColors.primary),
+                      side: BorderSide(color: _letsTalkSaved ? BlushyColors.disabled : BlushyColors.primary),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                     ),
-                    child: Text(_letsTalkSaved ? "Saved" : "Save for Weekend", style: GoogleFonts.inter(fontSize: 11, color: _letsTalkSaved ? Colors.grey : BlushyColors.primary, fontWeight: FontWeight.bold)),
+                    child: Text(_letsTalkSaved ? "Saved" : "Save for Weekend", style: GoogleFonts.poppins(fontSize: 11, color: _letsTalkSaved ? BlushyColors.disabled : BlushyColors.primary, fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
@@ -1820,13 +1877,13 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             children: [
               Text(
                 "FIRST PERIOD KIT CHECKLIST",
-                style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText, letterSpacing: 1.0),
+                style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText, letterSpacing: 1.0),
               ),
               const SizedBox(height: 12),
               ..._periodKitChecklist.keys.map((item) {
                 final isChecked = _periodKitChecklist[item]!;
                 return CheckboxListTile(
-                  title: Text(item, style: GoogleFonts.inter(fontSize: 13, color: BlushyColors.text)),
+                  title: Text(item, style: GoogleFonts.poppins(fontSize: 13, color: BlushyColors.text)),
                   value: isChecked,
                   activeColor: BlushyColors.primary,
                   contentPadding: EdgeInsets.zero,
@@ -1856,12 +1913,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             children: [
               Text(
                 "SHARED JOURNEY",
-                style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText, letterSpacing: 1.0),
+                style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText, letterSpacing: 1.0),
               ),
               const SizedBox(height: 10),
               Text(
                 "Display learning progress completed together. The child decides what is visible.",
-                style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.secondaryText),
+                style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.secondaryText),
               ),
               const SizedBox(height: 12),
               ..._lessons.map((lesson) {
@@ -1873,14 +1930,14 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     children: [
                       Icon(
                         isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
-                        color: isCompleted ? Colors.green : Colors.grey,
+                        color: isCompleted ? BlushyColors.success : BlushyColors.disabled,
                         size: 16,
                       ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           lesson,
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.poppins(
                             fontSize: 12,
                             color: BlushyColors.text,
                             decoration: isCompleted ? TextDecoration.lineThrough : null,
@@ -1899,11 +1956,11 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                             });
                           },
                           child: Text(
-                            isShared ? "Shared ✓" : "Share",
-                            style: GoogleFonts.inter(
+                            isShared ? "Shared " : "Share",
+                            style: GoogleFonts.poppins(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
-                              color: isShared ? Colors.green : BlushyColors.primary,
+                              color: isShared ? BlushyColors.success : BlushyColors.primary,
                             ),
                           ),
                         ),
@@ -1941,7 +1998,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
         children: [
           Text(
             "GROWING JOURNEY",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -1989,7 +2046,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     children: [
                       Text(
                         stage['title']!,
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.poppins(
                           fontSize: 13,
                           fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
                           color: isActive ? BlushyColors.text : BlushyColors.secondaryText,
@@ -1999,7 +2056,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                         const SizedBox(height: 4),
                         Text(
                           "\"Every little thing you learn today prepares you for tomorrow.\"",
-                          style: GoogleFonts.cormorantGaramond(
+                          style: GoogleFonts.poppins(
                             fontSize: 14,
                             fontStyle: FontStyle.italic,
                             color: BlushyColors.primary,
@@ -2211,7 +2268,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               const SizedBox(width: 8),
               Text(
                 "SIA'S LESSON NOTE",
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                   color: BlushyColors.primary,
@@ -2223,7 +2280,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           const SizedBox(height: 20),
           Text(
             "Good Morning, $name",
-            style: GoogleFonts.cormorantGaramond(
+            style: GoogleFonts.poppins(
               fontSize: 32,
               fontWeight: FontWeight.w600,
               color: BlushyColors.text,
@@ -2233,7 +2290,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           const SizedBox(height: 12),
           Text(
             "You've started an exciting new chapter. Every cycle teaches us something new, and I'll be here to help you understand yours.",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 15,
               color: BlushyColors.secondaryText,
               height: 1.45,
@@ -2247,12 +2304,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                 children: [
                   Text(
                     "CYCLE DAY 19",
-                    style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                    style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     "Last Period: July 7",
-                    style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.secondaryText),
+                    style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.secondaryText),
                   ),
                 ],
               ),
@@ -2282,7 +2339,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   ),
                   child: Text(
                     "Log Today's Feelings",
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.poppins(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -2302,7 +2359,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   ),
                   child: Text(
                     "Ask Sia",
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.poppins(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
                     ),
@@ -2328,7 +2385,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             children: [
               Text(
                 "MY FIRST CYCLES",
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                   color: BlushyColors.secondaryText,
@@ -2338,7 +2395,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               const SizedBox(height: 6),
               Text(
                 "Your learning cycle companion.",
-                style: GoogleFonts.cormorantGaramond(
+                style: GoogleFonts.poppins(
                   fontSize: 22,
                   fontWeight: FontWeight.w500,
                   color: BlushyColors.text,
@@ -2366,7 +2423,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     children: [
                       Text(
                         "Cycle #3",
-                        style: GoogleFonts.cormorantGaramond(
+                        style: GoogleFonts.poppins(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
                           color: BlushyColors.text,
@@ -2375,7 +2432,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       const SizedBox(height: 2),
                       Text(
                         "19 days since last period",
-                        style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.secondaryText),
+                        style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.secondaryText),
                       ),
                     ],
                   ),
@@ -2393,7 +2450,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     ),
                     child: Text(
                       "Log Period",
-                      style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                      style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
                     ),
                   ),
                 ],
@@ -2427,7 +2484,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               // Calendar Preview of the last 30 days
               Text(
                 "PAST 30 DAYS",
-                style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText, letterSpacing: 1.0),
+                style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText, letterSpacing: 1.0),
               ),
               const SizedBox(height: 12),
               SizedBox(
@@ -2452,7 +2509,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       child: Center(
                         child: Text(
                           day.toString(),
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.poppins(
                             fontSize: 9,
                             fontWeight: FontWeight.bold,
                             color: isMenstrual ? Colors.white : BlushyColors.text,
@@ -2480,7 +2537,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     Expanded(
                       child: Text(
                         "It's completely normal for your first few cycles to be irregular. Your body is gently finding its own natural rhythm.",
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.poppins(
                           fontSize: 12,
                           color: BlushyColors.secondaryText,
                           height: 1.45,
@@ -2512,7 +2569,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
         const SizedBox(width: 6),
         Text(
           label,
-          style: GoogleFonts.inter(
+          style: GoogleFonts.poppins(
             fontSize: 10,
             color: BlushyColors.secondaryText,
             fontWeight: FontWeight.w500,
@@ -2525,11 +2582,11 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
   // --- SECTION 3: HOW ARE YOU TODAY? (One-tap logging) ---
   Widget _buildHowAreYouToday() {
     final List<Map<String, dynamic>> moodOptions = [
-      {"icon": "😊", "label": "Happy"},
-      {"icon": "😐", "label": "Okay"},
-      {"icon": "😣", "label": "Cramps"},
-      {"icon": "😴", "label": "Tired"},
-      {"icon": "😤", "label": "Irritable"},
+      {"icon": "", "label": "Happy"},
+      {"icon": "", "label": "Okay"},
+      {"icon": "", "label": "Cramps"},
+      {"icon": "", "label": "Tired"},
+      {"icon": "", "label": "Irritable"},
     ];
 
     final List<String> energyOptions = ["High", "Medium", "Low"];
@@ -2542,7 +2599,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "HOW ARE YOU TODAY?",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -2564,7 +2621,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               // Mood Selector
               Text(
                 "MOOD",
-                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
+                style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
               ),
               const SizedBox(height: 12),
               Row(
@@ -2606,7 +2663,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                         const SizedBox(height: 6),
                         Text(
                           opt['label'],
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.poppins(
                             fontSize: 10,
                             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                             color: isSelected ? BlushyColors.primary : BlushyColors.secondaryText,
@@ -2622,7 +2679,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               // Energy Selector
               Text(
                 "ENERGY LEVEL",
-                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
+                style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
               ),
               const SizedBox(height: 12),
               Row(
@@ -2647,7 +2704,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                           child: Text(
                             opt,
                             textAlign: TextAlign.center,
-                            style: GoogleFonts.inter(
+                            style: GoogleFonts.poppins(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
                               color: isSelected ? Colors.white : BlushyColors.text,
@@ -2664,7 +2721,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               // Flow Selector
               Text(
                 "FLOW LEVEL",
-                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
+                style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
               ),
               const SizedBox(height: 12),
               Row(
@@ -2689,7 +2746,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                           child: Text(
                             opt,
                             textAlign: TextAlign.center,
-                            style: GoogleFonts.inter(
+                            style: GoogleFonts.poppins(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
                               color: isSelected ? Colors.white : BlushyColors.text,
@@ -2706,7 +2763,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               // Notes & Voice logging
               Text(
                 "NOTES & REFLECTIONS",
-                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
+                style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
               ),
               const SizedBox(height: 12),
               Row(
@@ -2798,7 +2855,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "UNDERSTAND MY CYCLE",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -2837,7 +2894,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     Expanded(
                       child: Text(
                         item['q']!,
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.poppins(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
                           color: BlushyColors.text,
@@ -2853,7 +2910,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                           },
                           child: Text(
                             "Read",
-                            style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                            style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                           ),
                         ),
                         const Spacer(),
@@ -2898,7 +2955,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "CONNECT",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -2928,7 +2985,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     child: Text(
                       "Girls",
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.poppins(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                         color: _connectStartedTabIndex == 0 ? BlushyColors.text : BlushyColors.secondaryText,
@@ -2949,7 +3006,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     child: Text(
                       "Growing Together",
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.poppins(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                         color: _connectStartedTabIndex == 1 ? BlushyColors.text : BlushyColors.secondaryText,
@@ -2980,7 +3037,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
         children: [
           Text(
             "Community Discussions & Stories",
-            style: GoogleFonts.cormorantGaramond(
+            style: GoogleFonts.poppins(
               fontSize: 18,
               fontWeight: FontWeight.bold,
               color: BlushyColors.text,
@@ -2998,12 +3055,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   children: [
                     Text(
                       "Has anyone skipped their second period?",
-                      style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                      style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: BlushyColors.text),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       "Yes, my second cycle was 52 days! It's super common for it to skip a month.",
-                      style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.secondaryText),
+                      style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.secondaryText),
                     ),
                   ],
                 ),
@@ -3022,12 +3079,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   children: [
                     Text(
                       "PMS Mood Swings tips?",
-                      style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                      style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: BlushyColors.text),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       "Writings helps me, and telling my sister I feel touchy today.",
-                      style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.secondaryText),
+                      style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.secondaryText),
                     ),
                   ],
                 ),
@@ -3051,7 +3108,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               ),
               child: Text(
                 "Open Discussions",
-                style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
               ),
             ),
           ),
@@ -3077,12 +3134,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             children: [
               Text(
                 "SHARED READING & PARENT RESOURCES",
-                style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText, letterSpacing: 1.0),
+                style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText, letterSpacing: 1.0),
               ),
               const SizedBox(height: 8),
               Text(
                 "Send cycle articles to parent or consult conversation guides.",
-                style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.text),
+                style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.text),
               ),
               const SizedBox(height: 12),
               Row(
@@ -3098,7 +3155,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                         side: const BorderSide(color: BlushyColors.primary),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
-                      child: Text("Share", style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.primary, fontWeight: FontWeight.bold)),
+                      child: Text("Share", style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.primary, fontWeight: FontWeight.bold)),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -3113,7 +3170,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                         side: const BorderSide(color: BlushyColors.primary),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
-                      child: Text("Guides", style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.primary, fontWeight: FontWeight.bold)),
+                      child: Text("Guides", style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.primary, fontWeight: FontWeight.bold)),
                     ),
                   ),
                 ],
@@ -3136,12 +3193,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             children: [
               Text(
                 "CONVERSATION PROMPT",
-                style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.orangeAccent, letterSpacing: 1.0),
+                style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.warning, letterSpacing: 1.0),
               ),
               const SizedBox(height: 8),
               Text(
                 "\"Is there anything you wish we discussed more about body changes?\"",
-                style: GoogleFonts.cormorantGaramond(fontSize: 18, fontWeight: FontWeight.w600, color: BlushyColors.text),
+                style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w600, color: BlushyColors.text),
               ),
               const SizedBox(height: 14),
               Row(
@@ -3153,11 +3210,11 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       });
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _startedLetsTalkDiscussed ? Colors.green : BlushyColors.primary,
+                      backgroundColor: _startedLetsTalkDiscussed ? BlushyColors.success : BlushyColors.primary,
                       elevation: 0,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
-                    child: Text(_startedLetsTalkDiscussed ? "Discussed ✓" : "Discussed", style: GoogleFonts.inter(fontSize: 11, color: Colors.white, fontWeight: FontWeight.bold)),
+                    child: Text(_startedLetsTalkDiscussed ? "Discussed " : "Discussed", style: GoogleFonts.poppins(fontSize: 11, color: Colors.white, fontWeight: FontWeight.bold)),
                   ),
                   const SizedBox(width: 8),
                   OutlinedButton(
@@ -3167,10 +3224,10 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       });
                     },
                     style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: _startedLetsTalkSaved ? Colors.grey : BlushyColors.primary),
+                      side: BorderSide(color: _startedLetsTalkSaved ? BlushyColors.disabled : BlushyColors.primary),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
-                    child: Text(_startedLetsTalkSaved ? "Saved" : "Save for Weekend", style: GoogleFonts.inter(fontSize: 11, color: _startedLetsTalkSaved ? Colors.grey : BlushyColors.primary, fontWeight: FontWeight.bold)),
+                    child: Text(_startedLetsTalkSaved ? "Saved" : "Save for Weekend", style: GoogleFonts.poppins(fontSize: 11, color: _startedLetsTalkSaved ? BlushyColors.disabled : BlushyColors.primary, fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
@@ -3192,13 +3249,13 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             children: [
               Text(
                 "FIRST PERIOD KIT STATUS",
-                style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText, letterSpacing: 1.0),
+                style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText, letterSpacing: 1.0),
               ),
               const SizedBox(height: 12),
               ..._startedPeriodKitChecklist.keys.map((item) {
                 final isChecked = _startedPeriodKitChecklist[item]!;
                 return CheckboxListTile(
-                  title: Text(item, style: GoogleFonts.inter(fontSize: 13, color: BlushyColors.text)),
+                  title: Text(item, style: GoogleFonts.poppins(fontSize: 13, color: BlushyColors.text)),
                   value: isChecked,
                   activeColor: BlushyColors.primary,
                   contentPadding: EdgeInsets.zero,
@@ -3218,8 +3275,8 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4.0),
           child: Text(
-            "🔒 Sia Safety: Your parent never has access to your private chat logs, notes, or moods.",
-            style: GoogleFonts.inter(fontSize: 10, color: BlushyColors.secondaryText, fontStyle: FontStyle.italic),
+            " Sia Safety: Your parent never has access to your private chat logs, notes, or moods.",
+            style: GoogleFonts.poppins(fontSize: 10, color: BlushyColors.secondaryText, fontStyle: FontStyle.italic),
           ),
         ),
       ],
@@ -3248,7 +3305,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
         children: [
           Text(
             "MY JOURNEY MILESTONES",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -3264,14 +3321,14 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                 children: [
                   Icon(
                     isDone ? Icons.check_circle : Icons.radio_button_unchecked,
-                    color: isDone ? Colors.green : Colors.grey.withOpacity(0.5),
+                    color: isDone ? BlushyColors.success : BlushyColors.disabled.withOpacity(0.5),
                     size: 20,
                   ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Text(
                       m['title'],
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.poppins(
                         fontSize: 13,
                         fontWeight: isDone ? FontWeight.bold : FontWeight.normal,
                         color: isDone ? BlushyColors.text : BlushyColors.secondaryText,
@@ -3451,7 +3508,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                 children: [
                   Text(
                     "DAILY READING",
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.poppins(
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
                       color: BlushyColors.primary,
@@ -3461,7 +3518,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   const SizedBox(height: 12),
                   Text(
                     title,
-                    style: GoogleFonts.cormorantGaramond(
+                    style: GoogleFonts.poppins(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
                       color: BlushyColors.text,
@@ -3470,7 +3527,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   const SizedBox(height: 16),
                   Text(
                     content,
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.poppins(
                       fontSize: 14,
                       color: BlushyColors.text,
                       height: 1.6,
@@ -3483,7 +3540,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       onPressed: () => Navigator.pop(context),
                       child: Text(
                         "Close",
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.poppins(
                           fontWeight: FontWeight.bold,
                           color: BlushyColors.primary,
                         ),
@@ -3527,7 +3584,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               const SizedBox(width: 8),
               Text(
                 "SIA'S DAILY BRIEF",
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                   color: BlushyColors.primary,
@@ -3539,7 +3596,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           const SizedBox(height: 20),
           Text(
             "Good Morning, $name",
-            style: GoogleFonts.cormorantGaramond(
+            style: GoogleFonts.poppins(
               fontSize: 32,
               fontWeight: FontWeight.w600,
               color: BlushyColors.text,
@@ -3549,7 +3606,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           const SizedBox(height: 12),
           Text(
             "You're entering your luteal phase. Be a little kinder to yourself today.",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 15,
               color: BlushyColors.secondaryText,
               height: 1.45,
@@ -3563,12 +3620,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                 children: [
                   Text(
                     "CYCLE DAY 19 • LUTEAL PHASE",
-                    style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                    style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     "Steady energy, focus starting to naturally slow down.",
-                    style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.secondaryText),
+                    style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.secondaryText),
                   ),
                 ],
               ),
@@ -3598,7 +3655,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   ),
                   child: Text(
                     "Check In",
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.poppins(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -3618,7 +3675,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   ),
                   child: Text(
                     "Ask Sia",
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.poppins(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
                     ),
@@ -3634,6 +3691,13 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
 
   // --- SECTION 2: TODAY'S CYCLE (Featuring Ovary loop tracker BlushyCycleCard) ---
   Widget _buildLivingTodayCycle() {
+    final bool isConfirmed = _periodConfirmationState.status == 'confirmed';
+    final String phaseText = isConfirmed ? "Menstrual Phase Rhythm" : "Luteal Phase Rhythm";
+    final String dayText = isConfirmed ? "Cycle Day 1" : "Cycle Day 19";
+    final String subtitleText = isConfirmed 
+        ? "Period logged today (Day 1)" 
+        : "9 days until expected period (August 2)";
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -3644,7 +3708,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             children: [
               Text(
                 "TODAY'S CYCLE",
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                   color: BlushyColors.secondaryText,
@@ -3653,8 +3717,8 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               ),
               const SizedBox(height: 6),
               Text(
-                "Luteal Phase Rhythm",
-                style: GoogleFonts.cormorantGaramond(
+                phaseText,
+                style: GoogleFonts.poppins(
                   fontSize: 22,
                   fontWeight: FontWeight.w500,
                   color: BlushyColors.text,
@@ -3676,13 +3740,14 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "Cycle Day 19",
-                        style: GoogleFonts.cormorantGaramond(
+                        dayText,
+                        style: GoogleFonts.poppins(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
                           color: BlushyColors.text,
@@ -3690,10 +3755,20 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        "9 days until expected period (August 2)",
-                        style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.secondaryText),
+                        subtitleText,
+                        style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.secondaryText),
                       ),
                     ],
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined, color: BlushyColors.secondaryText, size: 18),
+                    onPressed: () {
+                      _showLogPeriodBottomSheet(context);
+                    },
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    splashRadius: 20,
+                    tooltip: "Log / Edit Period",
                   ),
                 ],
               ),
@@ -3716,17 +3791,35 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   const SizedBox(width: 14),
                   _buildStartedLegendDot("Follicular", const Color(0xFFFF9B9E)),
                   const SizedBox(width: 14),
-                  _buildStartedLegendDot("Ovulation", const Color(0xFFFFB800)),
-                  const SizedBox(width: 14),
                   _buildStartedLegendDot("Luteal", const Color(0xFF6F42F5)),
                 ],
+              ),
+              const SizedBox(height: 24),
+              // Today's Check-in CTA
+              ElevatedButton(
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Opening daily check-in logs...")),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: BlushyColors.primary,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(double.infinity, 48),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  elevation: 0,
+                ),
+                child: Text(
+                  "Log Today's Symptoms",
+                  style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600),
+                ),
               ),
               const SizedBox(height: 32),
 
               // Today's expectations list with confidence levels
               Text(
-                "TODAY'S EXPECTATIONS",
-                style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText, letterSpacing: 1.0),
+                "CURRENT SYMPTOMS & EXPECTATIONS",
+                style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText, letterSpacing: 1.0),
               ),
               const SizedBox(height: 16),
               _buildExpectationItem("Energy", "Medium-High", "85% confidence"),
@@ -3742,6 +3835,211 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
     );
   }
 
+  void _showLogPeriodBottomSheet(BuildContext context) {
+    DateTime selectedStart = _periodConfirmationState.actualStartDate ?? DateTime.now();
+    DateTime? selectedEnd;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setModalState) {
+            return Container(
+              padding: EdgeInsets.only(
+                top: 24,
+                left: 24,
+                right: 24,
+                bottom: 24 + MediaQuery.of(context).viewInsets.bottom,
+              ),
+              decoration: const BoxDecoration(
+                color: Color(0xFFFAF6F0),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: BlushyColors.border,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    "Log / Edit Period",
+                    style: GoogleFonts.poppins(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: BlushyColors.text,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    "Confirm or correct your period start and end dates below.",
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: BlushyColors.secondaryText,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    "PERIOD START DATE",
+                    style: GoogleFonts.poppins(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: BlushyColors.secondaryText,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  InkWell(
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: selectedStart,
+                        firstDate: DateTime.now().subtract(const Duration(days: 45)),
+                        lastDate: DateTime.now(),
+                      );
+                      if (picked != null) {
+                        setModalState(() {
+                          selectedStart = picked;
+                        });
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: BlushyColors.border),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            "${selectedStart.year}-${selectedStart.month.toString().padLeft(2, '0')}-${selectedStart.day.toString().padLeft(2, '0')}",
+                            style: GoogleFonts.poppins(fontSize: 14, color: BlushyColors.text, fontWeight: FontWeight.w600),
+                          ),
+                          const Icon(Icons.calendar_today_rounded, size: 16, color: BlushyColors.primary),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    "PERIOD END DATE (OPTIONAL)",
+                    style: GoogleFonts.poppins(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: BlushyColors.secondaryText,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  InkWell(
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: selectedEnd ?? selectedStart.add(const Duration(days: 5)),
+                        firstDate: selectedStart,
+                        lastDate: DateTime.now().add(const Duration(days: 10)),
+                      );
+                      if (picked != null) {
+                        setModalState(() {
+                          selectedEnd = picked;
+                        });
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: BlushyColors.border),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            selectedEnd == null 
+                                ? "Not ended yet" 
+                                : "${selectedEnd!.year}-${selectedEnd!.month.toString().padLeft(2, '0')}-${selectedEnd!.day.toString().padLeft(2, '0')}",
+                            style: GoogleFonts.poppins(fontSize: 14, color: selectedEnd == null ? BlushyColors.secondaryText : BlushyColors.text, fontWeight: FontWeight.w600),
+                          ),
+                          const Icon(Icons.calendar_today_rounded, size: 16, color: BlushyColors.primary),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: BlushyColors.border),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          child: Text(
+                            "Cancel",
+                            style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: BlushyColors.secondaryText),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            _simulateLogPeriod(selectedStart, selectedEnd);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: BlushyColors.primary,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          child: Text(
+                            "Save",
+                            style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _simulateLogPeriod(DateTime startDate, DateTime? endDate) {
+    setState(() {
+      _periodConfirmationState = _periodConfirmationState.copyWith(
+        hasLoggedPeriod: true,
+        actualStartDate: startDate,
+        status: 'confirmed',
+      );
+    });
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Period logged successfully! Cycle reset to Day 1.")),
+    );
+  }
+
   Widget _buildExpectationItem(String label, String value, String confidence) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -3752,14 +4050,14 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             flex: 30,
             child: Text(
               label,
-              style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: BlushyColors.text),
+              style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: BlushyColors.text),
             ),
           ),
           Expanded(
             flex: 45,
             child: Text(
               value,
-              style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.text),
+              style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.text),
             ),
           ),
           Expanded(
@@ -3767,7 +4065,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             child: Text(
               confidence,
               textAlign: TextAlign.end,
-              style: GoogleFonts.inter(fontSize: 10, color: BlushyColors.secondaryText, fontStyle: FontStyle.italic),
+              style: GoogleFonts.poppins(fontSize: 10, color: BlushyColors.secondaryText, fontStyle: FontStyle.italic),
             ),
           ),
         ],
@@ -3778,11 +4076,11 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
   // --- SECTION 3: CHECK IN (One-tap logging) ---
   Widget _buildLivingCheckIn() {
     final List<Map<String, dynamic>> moodOptions = [
-      {"icon": "😊", "label": "Happy"},
-      {"icon": "😐", "label": "Okay"},
-      {"icon": "😣", "label": "Cramps"},
-      {"icon": "😴", "label": "Tired"},
-      {"icon": "😤", "label": "Irritable"},
+      {"icon": "", "label": "Happy"},
+      {"icon": "", "label": "Okay"},
+      {"icon": "", "label": "Cramps"},
+      {"icon": "", "label": "Tired"},
+      {"icon": "", "label": "Irritable"},
     ];
 
     final List<String> energyOptions = ["High", "Medium", "Low"];
@@ -3800,7 +4098,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "CHECK IN",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -3822,7 +4120,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               // Mood Selector
               Text(
                 "MOOD",
-                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
+                style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
               ),
               const SizedBox(height: 12),
               Row(
@@ -3864,7 +4162,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                         const SizedBox(height: 6),
                         Text(
                           opt['label'],
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.poppins(
                             fontSize: 10,
                             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                             color: isSelected ? BlushyColors.primary : BlushyColors.secondaryText,
@@ -3922,7 +4220,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               // Notes & Reflections
               Text(
                 "NOTES & REFLECTIONS",
-                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
+                style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
               ),
               const SizedBox(height: 12),
               Row(
@@ -3988,7 +4286,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
       children: [
         Text(
           label,
-          style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
+          style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
         ),
         const SizedBox(height: 12),
         Row(
@@ -4009,7 +4307,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     child: Text(
                       opt,
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.poppins(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                         color: isSelected ? Colors.white : BlushyColors.text,
@@ -4049,7 +4347,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "SIA INSIGHTS",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -4079,7 +4377,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       Expanded(
                         child: Text(
                           item['insight']!,
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.poppins(
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
                             color: BlushyColors.text,
@@ -4098,7 +4396,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                         },
                         child: Text(
                           "Explain Insight",
-                          style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                          style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                         ),
                       ),
                     ],
@@ -4162,7 +4460,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "DISCOVER",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -4192,7 +4490,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   ),
                   child: Text(
                     topic,
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.poppins(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                       color: isSelected ? Colors.white : BlushyColors.text,
@@ -4222,12 +4520,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   children: [
                     Text(
                       article['title']!,
-                      style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                      style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: BlushyColors.text),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       article['desc']!,
-                      style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.secondaryText, height: 1.4),
+                      style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.secondaryText, height: 1.4),
                     ),
                     const SizedBox(height: 16),
                     Row(
@@ -4238,7 +4536,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                           },
                           child: Text(
                             "Read",
-                            style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                            style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                           ),
                         ),
                         const Spacer(),
@@ -4293,7 +4591,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "COMMUNITY",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -4323,7 +4621,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     child: Text(
                       tab,
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.poppins(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
                         color: isSelected ? BlushyColors.text : BlushyColors.secondaryText,
@@ -4354,21 +4652,21 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       children: [
                         Text(
                           post['user']!,
-                          style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                          style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                         ),
                         const SizedBox(width: 6),
-                        Container(width: 4, height: 4, decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.grey)),
+                        Container(width: 4, height: 4, decoration: const BoxDecoration(shape: BoxShape.circle, color: BlushyColors.disabled)),
                         const SizedBox(width: 6),
                         Text(
                           "Luteal Phase feed",
-                          style: GoogleFonts.inter(fontSize: 9, color: BlushyColors.secondaryText),
+                          style: GoogleFonts.poppins(fontSize: 9, color: BlushyColors.secondaryText),
                         ),
                       ],
                     ),
                     const SizedBox(height: 4),
                     Text(
                       post['content']!,
-                      style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.text),
+                      style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.text),
                     ),
                     const Divider(height: 24, color: Color(0xFFF5F0EB)),
                   ],
@@ -4383,32 +4681,14 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
 
   // --- SECTION 7: MY PATTERNS (Personalized observations instead of graphs) ---
   Widget _buildLivingPatterns() {
-    final List<Map<String, String>> patternCards = [
-      {
-        "title": "Mood Pattern",
-        "desc": "\"You usually feel calm on Days 8–12.\"",
-        "detail": "Estrogen levels are rising steadily, creating a natural mood stabilizer effect."
-      },
-      {
-        "title": "Sleep Pattern",
-        "desc": "\"You average 7.8 hours before your period.\"",
-        "detail": "Sleep length increases slightly as body temperature peaks during luteal phase."
-      },
-      {
-        "title": "Hydration Pattern",
-        "desc": "\"You drink less water during menstruation.\"",
-        "detail": "Logging shows a 25% drop in water intake on bleeding days. Remember to keep fluids high!"
-      },
-    ];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
-            "MY PATTERNS",
-            style: GoogleFonts.inter(
+            "CYCLE PATTERNS & INSIGHTS",
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -4417,11 +4697,25 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           ),
         ),
         const SizedBox(height: 16),
-        ...patternCards.map((card) {
+        ...dummyInsights.map((insight) {
+          IconData insightIcon;
+          final titleLower = insight.title.toLowerCase();
+          if (titleLower.contains('mood')) {
+            insightIcon = Icons.bubble_chart_rounded;
+          } else if (titleLower.contains('energy')) {
+            insightIcon = Icons.bolt_rounded;
+          } else if (titleLower.contains('sleep')) {
+            insightIcon = Icons.bedtime_rounded;
+          } else if (titleLower.contains('symptom')) {
+            insightIcon = Icons.healing_rounded;
+          } else {
+            insightIcon = Icons.analytics_rounded;
+          }
+
           return Padding(
             padding: const EdgeInsets.only(bottom: 16.0),
             child: Container(
-              padding: const EdgeInsets.all(28),
+              padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
@@ -4430,19 +4724,49 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(insightIcon, size: 18, color: BlushyColors.primary),
+                          const SizedBox(width: 8),
+                          Text(
+                            insight.title.toUpperCase(),
+                            style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.primary, letterSpacing: 1.0),
+                          ),
+                        ],
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: BlushyColors.taupe,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          "${insight.confidenceLevel} Confidence",
+                          style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.w600, color: BlushyColors.secondaryText),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
                   Text(
-                    card['title']!,
-                    style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.primary, letterSpacing: 1.0),
+                    insight.observation,
+                    style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: BlushyColors.text),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    card['desc']!,
-                    style: GoogleFonts.cormorantGaramond(fontSize: 18, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                    "Evidence: ${insight.evidence}",
+                    style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.secondaryText, height: 1.4),
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    card['detail']!,
-                    style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.secondaryText, height: 1.4),
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.bottomRight,
+                    child: Text(
+                      insight.timestamp,
+                      style: GoogleFonts.poppins(fontSize: 9, color: BlushyColors.secondaryText.withOpacity(0.8), fontStyle: FontStyle.italic),
+                    ),
                   ),
                 ],
               ),
@@ -4474,7 +4798,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
         children: [
           Text(
             "MONTHLY REFLECTION & JOURNEY",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -4487,12 +4811,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               padding: const EdgeInsets.symmetric(vertical: 8.0),
               child: Row(
                 children: [
-                  const Icon(Icons.check_circle, color: Colors.green, size: 20),
+                  const Icon(Icons.check_circle, color: BlushyColors.success, size: 20),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Text(
                       m,
-                      style: GoogleFonts.inter(fontSize: 13, color: BlushyColors.text, fontWeight: FontWeight.w500),
+                      style: GoogleFonts.poppins(fontSize: 13, color: BlushyColors.text, fontWeight: FontWeight.w500),
                     ),
                   ),
                 ],
@@ -4502,12 +4826,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           const Divider(height: 36, color: Color(0xFFF5F0EB)),
           Text(
             "SIA'S REFLECTION",
-            style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+            style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.primary),
           ),
           const SizedBox(height: 8),
           Text(
             "\"This month, your body established a very steady rhythm. By logging consistently, you're building a beautiful, intuitive relationship with your natural flow.\"",
-            style: GoogleFonts.cormorantGaramond(
+            style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.w600,
               color: BlushyColors.text,
@@ -4539,7 +4863,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width < 768 ? 640 : double.infinity),
                   child: ListView(
                     physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
                     children: [
                       _buildLivingHero(displayName),
                       const SizedBox(height: 32),
@@ -4573,7 +4897,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   constraints: const BoxConstraints(maxWidth: double.infinity),
                   child: ListView(
                     physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 36),
                     children: [
                       _buildLivingHero(displayName),
                       const SizedBox(height: 48),
@@ -4711,7 +5035,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               const SizedBox(width: 8),
               Text(
                 "SIA'S DAILY BRIEF",
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                   color: BlushyColors.primary,
@@ -4723,7 +5047,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           const SizedBox(height: 20),
           Text(
             "Good Morning, $name",
-            style: GoogleFonts.cormorantGaramond(
+            style: GoogleFonts.poppins(
               fontSize: 32,
               fontWeight: FontWeight.w600,
               color: BlushyColors.text,
@@ -4733,7 +5057,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           const SizedBox(height: 12),
           Text(
             "Your body has been through a lot recently. Today let's focus on what you can control.",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 15,
               color: BlushyColors.secondaryText,
               height: 1.45,
@@ -4747,12 +5071,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                 children: [
                   Text(
                     "CYCLE STATUS: WAITING FOR NEXT PERIOD",
-                    style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                    style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     "Cycle Day 53 • Steady tracking is your best indicator.",
-                    style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.secondaryText),
+                    style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.secondaryText),
                   ),
                 ],
               ),
@@ -4781,7 +5105,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   ),
                   child: Text(
                     "Today's Check-in",
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.poppins(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -4801,7 +5125,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   ),
                   child: Text(
                     "Ask Sia",
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.poppins(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
                     ),
@@ -4835,7 +5159,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             children: [
               Text(
                 "MY CYCLE HEALTH",
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                   color: BlushyColors.secondaryText,
@@ -4845,7 +5169,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               const SizedBox(height: 6),
               Text(
                 "Hormonal Rhythm Tracker",
-                style: GoogleFonts.cormorantGaramond(
+                style: GoogleFonts.poppins(
                   fontSize: 22,
                   fontWeight: FontWeight.w500,
                   color: BlushyColors.text,
@@ -4873,7 +5197,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     children: [
                       Text(
                         "Cycle Day 53",
-                        style: GoogleFonts.cormorantGaramond(
+                        style: GoogleFonts.poppins(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
                           color: BlushyColors.text,
@@ -4882,7 +5206,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       const SizedBox(height: 2),
                       Text(
                         "Last Period: June 4",
-                        style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.secondaryText),
+                        style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.secondaryText),
                       ),
                     ],
                   ),
@@ -4900,7 +5224,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     ),
                     child: Text(
                       "Log Period",
-                      style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                      style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
                     ),
                   ),
                 ],
@@ -4934,7 +5258,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               // Recent Cycle History horizontal blocks
               Text(
                 "RECENT CYCLE HISTORY",
-                style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText, letterSpacing: 1.0),
+                style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText, letterSpacing: 1.0),
               ),
               const SizedBox(height: 16),
               SizedBox(
@@ -4958,11 +5282,11 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                         children: [
                           Text(
                             item['len']!,
-                            style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                            style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                           ),
                           Text(
                             item['cycle']!,
-                            style: GoogleFonts.inter(fontSize: 8, color: BlushyColors.secondaryText),
+                            style: GoogleFonts.poppins(fontSize: 8, color: BlushyColors.secondaryText),
                           ),
                         ],
                       ),
@@ -5001,7 +5325,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                         Expanded(
                           child: Text(
                             "Your recent cycles have ranged between 38 and 71 days. This variation helps Sia understand your unique hormonal rhythm.",
-                            style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.secondaryText, height: 1.45),
+                            style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.secondaryText, height: 1.45),
                           ),
                         ),
                       ],
@@ -5009,12 +5333,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     const Divider(height: 20, color: Color(0xFFE5DDD5)),
                     Row(
                       children: [
-                        const Icon(Icons.calendar_month_outlined, size: 18, color: Colors.orangeAccent),
+                        const Icon(Icons.calendar_month_outlined, size: 18, color: BlushyColors.warning),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
                             "Your next period may arrive within the next few weeks. Because your cycles vary, this is only an estimate.",
-                            style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.secondaryText, height: 1.45),
+                            style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.secondaryText, height: 1.45),
                           ),
                         ),
                       ],
@@ -5035,12 +5359,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
       children: [
         Text(
           title,
-          style: GoogleFonts.inter(fontSize: 9, color: BlushyColors.secondaryText),
+          style: GoogleFonts.poppins(fontSize: 9, color: BlushyColors.secondaryText),
         ),
         const SizedBox(height: 4),
         Text(
           val,
-          style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: BlushyColors.text),
+          style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: BlushyColors.text),
         ),
       ],
     );
@@ -5049,11 +5373,11 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
   // --- SECTION 3: TODAY'S CHECK-IN (One-tap logging) ---
   Widget _buildHormonalCheckIn() {
     final List<Map<String, dynamic>> moodOptions = [
-      {"icon": "😊", "label": "Happy"},
-      {"icon": "😐", "label": "Okay"},
-      {"icon": "😣", "label": "Cramps"},
-      {"icon": "😴", "label": "Tired"},
-      {"icon": "😤", "label": "Irritable"},
+      {"icon": "", "label": "Happy"},
+      {"icon": "", "label": "Okay"},
+      {"icon": "", "label": "Cramps"},
+      {"icon": "", "label": "Tired"},
+      {"icon": "", "label": "Irritable"},
     ];
 
     final List<String> painOptions = ["None", "Mild", "Severe"];
@@ -5072,7 +5396,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "TODAY'S CHECK-IN",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -5094,7 +5418,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               // Mood Selector
               Text(
                 "MOOD",
-                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
+                style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
               ),
               const SizedBox(height: 12),
               Row(
@@ -5136,7 +5460,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                         const SizedBox(height: 6),
                         Text(
                           opt['label'],
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.poppins(
                             fontSize: 10,
                             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                             color: isSelected ? BlushyColors.primary : BlushyColors.secondaryText,
@@ -5200,7 +5524,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               // Optional Weight
               Text(
                 "WEIGHT (OPTIONAL)",
-                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
+                style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
               ),
               const SizedBox(height: 12),
               OutlinedButton.icon(
@@ -5233,7 +5557,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               // Notes & Reflections
               Text(
                 "NOTES & REFLECTIONS",
-                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
+                style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
               ),
               const SizedBox(height: 12),
               Row(
@@ -5294,21 +5618,6 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
 
   // --- SECTION 4: SIA INSIGHTS (Observations) ---
   Widget _buildHormonalSiaInsights() {
-    final List<Map<String, String>> observations = [
-      {
-        "insight": "You often experience acne before longer cycles.",
-        "explanation": "Longer cycles are often linked to delayed ovulation. Delayed ovulation extends the progesterone-androgen balance window, driving higher sebaceous gland activity and pre-period acne."
-      },
-      {
-        "insight": "Your pain usually decreases after Day 3.",
-        "explanation": "Prostaglandin hormone releases peaks during the first 48 hours of bleeding. As lining shedding progresses past day 3, uterine contractility naturally decreases."
-      },
-      {
-        "insight": "You report better energy on weeks when you exercise.",
-        "explanation": "Steady cardiovascular activity balances cortisol and improves insulin sensitivity, countering hormone-driven energy crashes."
-      },
-    ];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -5316,7 +5625,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "SIA INSIGHTS",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -5325,7 +5634,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           ),
         ),
         const SizedBox(height: 16),
-        ...observations.map((item) {
+        ...dummyConditionInsights.map((item) {
           return Padding(
             padding: const EdgeInsets.only(bottom: 16.0),
             child: Container(
@@ -5344,13 +5653,28 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       const Icon(Icons.auto_awesome, size: 16, color: BlushyColors.primary),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: Text(
-                          item['insight']!,
-                          style: GoogleFonts.inter(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: BlushyColors.text,
-                          ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.description,
+                              style: GoogleFonts.poppins(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: BlushyColors.text,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              "• ${item.contextLabel}",
+                              style: GoogleFonts.poppins(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w500,
+                                color: BlushyColors.secondaryText,
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -5360,17 +5684,17 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       TextButton(
-                        onPressed: () => _openAskSiaChat(context, "Tell me about: ${item['insight']}"),
-                        child: Text("Ask Sia", style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.primary)),
+                        onPressed: () => _openAskSiaChat(context, "Tell me about: ${item.description}"),
+                        child: Text("Ask Sia", style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.primary)),
                       ),
                       const SizedBox(width: 12),
                       TextButton(
                         onPressed: () {
-                          _showArticleDialog(context, "AI Observation Analysis", item['explanation']!);
+                          _showArticleDialog(context, item.title, item.explanation);
                         },
                         child: Text(
                           "Learn More",
-                          style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                          style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                         ),
                       ),
                     ],
@@ -5380,6 +5704,180 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             ),
           );
         }).toList(),
+      ],
+    );
+  }
+
+  Widget _buildHormonalAppointmentSummary() {
+    final summary = dummyAppointmentSummary;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Text(
+            "FOR YOUR NEXT APPOINTMENT",
+            style: GoogleFonts.poppins(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: BlushyColors.secondaryText,
+              letterSpacing: 2.0,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(32),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: BlushyColors.border, width: 0.8),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      summary.title,
+                      style: GoogleFonts.poppins(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: BlushyColors.text,
+                      ),
+                    ),
+                  ),
+                  const Icon(Icons.assignment_ind_outlined, color: BlushyColors.primary, size: 24),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                summary.summary,
+                style: GoogleFonts.poppins(
+                  fontSize: 12.5,
+                  color: BlushyColors.secondaryText,
+                  height: 1.45,
+                ),
+              ),
+              const SizedBox(height: 20),
+              
+              Text(
+                "RECENT CHANGES",
+                style: GoogleFonts.poppins(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: BlushyColors.primary,
+                  letterSpacing: 1.0,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Column(
+                children: summary.recentChanges.map((change) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4.0),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text("• ", style: TextStyle(fontWeight: FontWeight.bold, color: BlushyColors.primary)),
+                        Expanded(
+                          child: Text(
+                            change,
+                            style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.text, height: 1.4),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 20),
+
+              Text(
+                "QUESTIONS TO DISCUSS",
+                style: GoogleFonts.poppins(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: BlushyColors.primary,
+                  letterSpacing: 1.0,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Column(
+                children: summary.discussionPoints.map((point) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4.0),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text("• ", style: TextStyle(fontWeight: FontWeight.bold, color: BlushyColors.primary)),
+                        Expanded(
+                          child: Text(
+                            point,
+                            style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.text, height: 1.4),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+              
+              const SizedBox(height: 20),
+              const Divider(color: BlushyColors.border, height: 1),
+              const SizedBox(height: 16),
+              
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      summary.notes,
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: BlushyColors.secondaryText,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    "Generated: ${summary.generatedAt.year}-${summary.generatedAt.month.toString().padLeft(2, '0')}-${summary.generatedAt.day.toString().padLeft(2, '0')}",
+                    style: GoogleFonts.poppins(
+                      fontSize: 10,
+                      color: BlushyColors.secondaryText,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Exporting clinical summary PDF for your doctor...")),
+                    );
+                  },
+                  icon: const Icon(Icons.file_download_outlined, size: 18),
+                  label: Text(
+                    "Export Clinical Summary",
+                    style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: BlushyColors.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -5414,14 +5912,27 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: Text(
-            "UNDERSTANDING MY PATTERNS",
-            style: GoogleFonts.inter(
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              color: BlushyColors.secondaryText,
-              letterSpacing: 2.0,
-            ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "UNDERSTANDING MY PATTERNS",
+                style: GoogleFonts.poppins(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: BlushyColors.secondaryText,
+                  letterSpacing: 2.0,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                "AI-generated trends across multiple cycle logs",
+                style: GoogleFonts.poppins(
+                  fontSize: 11,
+                  color: BlushyColors.secondaryText,
+                ),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 16),
@@ -5440,17 +5951,17 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                 children: [
                   Text(
                     card['title']!,
-                    style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.primary, letterSpacing: 1.0),
+                    style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.primary, letterSpacing: 1.0),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     card['desc']!,
-                    style: GoogleFonts.cormorantGaramond(fontSize: 18, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                    style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: BlushyColors.text),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     card['detail']!,
-                    style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.secondaryText, height: 1.4),
+                    style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.secondaryText, height: 1.4),
                   ),
                   const SizedBox(height: 16),
                   Row(
@@ -5458,14 +5969,14 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     children: [
                       TextButton(
                         onPressed: () => _openAskSiaChat(context, "Explain this pattern: ${card['title']}"),
-                        child: Text("Ask Sia", style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.primary)),
+                        child: Text("Ask Sia", style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.primary)),
                       ),
                       const SizedBox(width: 8),
                       TextButton(
                         onPressed: () {
                           _showArticleDialog(context, card['title']!, "Clinical observation maps: ${card['detail']}");
                         },
-                        child: Text("Why This Matters", style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary)),
+                        child: Text("Why This Matters", style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary)),
                       ),
                     ],
                   ),
@@ -5480,17 +5991,6 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
 
   // --- SECTION 6: YOUR CARE PLAN (Daily Recommendations) ---
   Widget _buildHormonalCarePlan() {
-    final List<Map<String, dynamic>> carePlan = [
-      {"icon": Icons.water_drop_outlined, "title": "Hydration Target", "desc": "Keep fluid levels high (2.5L target) to lower luteal water retention."},
-      {"icon": Icons.restaurant, "title": "Nutrition Focus", "desc": "Incorporate magnesium and complex carbs to stabilize energy spikes."},
-      {"icon": Icons.directions_run, "title": "Movement Plan", "desc": "20-minute gentle walk to improve insulin sensitivity and lower cortisol."},
-      {"icon": Icons.nightlight_round, "title": "Sleep Protocol", "desc": "Maintain cool bedroom temperature (19°C) to facilitate progesterone drops."},
-      {"icon": Icons.self_improvement, "title": "Stress Relief", "desc": "5-minute deep breathing exercise to balance hormone regulators."},
-      {"icon": Icons.medication_outlined, "title": "Medication Reminder", "desc": "Take hormonal supplement as prescribed (Sia logs this automatically)."},
-      {"icon": Icons.hot_tub, "title": "Heat Therapy", "desc": "Apply warm pack for 15 minutes to soothe cramp micro-spasms."},
-      {"icon": Icons.question_mark, "title": "Questions for Doctor", "desc": "Write down cycle day variation details for your next clinic visit."},
-    ];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -5498,7 +5998,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "YOUR CARE PLAN",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -5516,26 +6016,51 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: carePlan.map((item) {
+            children: dummyCareRecommendations.map((item) {
               return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                padding: const EdgeInsets.symmetric(vertical: 12.0),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(item['icon'] as IconData, size: 20, color: BlushyColors.primary),
+                    Icon(item.icon, size: 20, color: BlushyColors.primary),
                     const SizedBox(width: 16),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            item['title'] as String,
-                            style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                item.title,
+                                style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: item.priority == 'High' ? BlushyColors.primary.withOpacity(0.1) : const Color(0x0F2E2623),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  "${item.priority} Priority",
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
+                                    color: item.priority == 'High' ? BlushyColors.primary : BlushyColors.secondaryText,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            item['desc'] as String,
-                            style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.secondaryText, height: 1.45),
+                            item.description,
+                            style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.text, height: 1.45),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            "Why: ${item.reason}",
+                            style: GoogleFonts.poppins(fontSize: 10, color: BlushyColors.secondaryText, fontStyle: FontStyle.italic),
                           ),
                         ],
                       ),
@@ -5588,7 +6113,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "LEARN",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -5617,7 +6142,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   ),
                   child: Text(
                     topic,
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.poppins(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                       color: isSelected ? Colors.white : BlushyColors.text,
@@ -5646,12 +6171,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   children: [
                     Text(
                       article['title']!,
-                      style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                      style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: BlushyColors.text),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       article['desc']!,
-                      style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.secondaryText, height: 1.4),
+                      style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.secondaryText, height: 1.4),
                     ),
                     const SizedBox(height: 16),
                     Row(
@@ -5662,7 +6187,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                           },
                           child: Text(
                             "Read",
-                            style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                            style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                           ),
                         ),
                         const Spacer(),
@@ -5701,10 +6226,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
   // --- SECTION 8: COMMUNITY ---
   Widget _buildHormonalCommunity() {
     final List<String> tabs = ["PCOS", "Endometriosis", "PMDD", "Hormonal Health"];
-    final articles = [
-      {"user": "HormonesGirl", "content": "Started inositol 3 months ago, cycle dropped from 56 to 34 days!"},
-      {"user": "CrampsNoMore", "content": "Castor oil packs during menstruation were a game changer for cramp pain."}
-    ];
+    final filteredPosts = dummyCommunityPosts.where((post) => post.category == _hormonalCommunityTab).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -5713,7 +6235,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "COMMUNITY",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -5743,7 +6265,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     child: Text(
                       tab,
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.poppins(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
                         color: isSelected ? BlushyColors.text : BlushyColors.secondaryText,
@@ -5764,37 +6286,99 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             border: Border.all(color: BlushyColors.border, width: 0.8),
           ),
           child: Column(
-            children: articles.map((post) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+            children: filteredPosts.isEmpty 
+              ? [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16.0),
+                    child: Center(
+                      child: Text(
+                        "No discussions in this channel yet.",
+                        style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.secondaryText),
+                      ),
+                    ),
+                  )
+                ]
+              : filteredPosts.map((post) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          post['user']!,
-                          style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                        Row(
+                          children: [
+                            Text(
+                              post.user,
+                              style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                            ),
+                            const SizedBox(width: 6),
+                            Container(width: 4, height: 4, decoration: const BoxDecoration(shape: BoxShape.circle, color: BlushyColors.disabled)),
+                            const SizedBox(width: 6),
+                            Text(
+                              "Diagnosis Forum feed",
+                              style: GoogleFonts.poppins(fontSize: 9, color: BlushyColors.secondaryText),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 6),
-                        Container(width: 4, height: 4, decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.grey)),
-                        const SizedBox(width: 6),
+                        const SizedBox(height: 4),
                         Text(
-                          "Diagnosis Forum feed",
-                          style: GoogleFonts.inter(fontSize: 9, color: BlushyColors.secondaryText),
+                          post.content,
+                          style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.text),
                         ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            if (post.medicalReview)
+                              Padding(
+                                padding: const EdgeInsets.only(right: 6.0),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFE8ECE9),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    "Pending Review",
+                                    style: GoogleFonts.poppins(fontSize: 8.5, color: const Color(0xFF6E8C78), fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              ),
+                            if (post.misinformationWarning)
+                              Padding(
+                                padding: const EdgeInsets.only(right: 6.0),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFBEBE6),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    "Under Verification",
+                                    style: GoogleFonts.poppins(fontSize: 8.5, color: Colors.deepOrange, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              ),
+                            if (post.professionalGuidance)
+                              Padding(
+                                padding: const EdgeInsets.only(right: 6.0),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFE6EDFB),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    "Clinician Guided",
+                                    style: GoogleFonts.poppins(fontSize: 8.5, color: Colors.blueAccent, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const Divider(height: 24, color: Color(0xFFF5F0EB)),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      post['content']!,
-                      style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.text),
-                    ),
-                    const Divider(height: 24, color: Color(0xFFF5F0EB)),
-                  ],
-                ),
-              );
-            }).toList(),
+                  );
+                }).toList(),
           ),
         ),
       ],
@@ -5803,69 +6387,98 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
 
   // --- SECTION 9: HEALTH TIMELINE (Chronological Health Journey) ---
   Widget _buildHormonalTimeline() {
-    final List<Map<String, String>> timelineData = [
-      {"month": "January", "event": "Cycle 61 Days", "detail": "Delayed follicular growth phase."},
-      {"month": "February", "event": "Acne Increased", "detail": "Hormone androgen fluctuations observed."},
-      {"month": "March", "event": "Started Medication", "detail": "Prescribed hormonal supplement protocol."},
-      {"month": "April", "event": "Pain Improved", "detail": "Pelvic cramping decreased post Day 3."},
-      {"month": "May", "event": "Cycle Reduced To 42 Days", "detail": "Steady improvement in ovulatory timings."},
-      {"month": "June", "event": "Energy Improved", "detail": "Fewer fatigue spikes logged during afternoon."},
-    ];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: Text(
-            "HEALTH TIMELINE",
-            style: GoogleFonts.inter(
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              color: BlushyColors.secondaryText,
-              letterSpacing: 2.0,
-            ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "PAST JOURNEY TIMELINE",
+                style: GoogleFonts.poppins(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: BlushyColors.secondaryText,
+                  letterSpacing: 2.0,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                "Chronological record of completed cycles and monthly summaries",
+                style: GoogleFonts.poppins(
+                  fontSize: 11,
+                  color: BlushyColors.secondaryText,
+                ),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 16),
         Container(
-          padding: const EdgeInsets.all(32),
+          padding: const EdgeInsets.all(28),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(24),
             border: Border.all(color: BlushyColors.border, width: 0.8),
           ),
           child: Column(
-            children: timelineData.map((item) {
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    flex: 25,
-                    child: Text(
-                      item['month']!,
-                      style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+            children: dummyTimelineSummaries.map((item) {
+              final isLast = item == dummyTimelineSummaries.last;
+              return Padding(
+                padding: EdgeInsets.only(bottom: isLast ? 0 : 20.0),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 30,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.month,
+                            style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            item.cycleLength,
+                            style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w500, color: BlushyColors.secondaryText),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  Expanded(
-                    flex: 75,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item['event']!,
-                          style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          item['detail']!,
-                          style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.secondaryText),
-                        ),
-                        const Divider(height: 24, color: Color(0xFFF5F0EB)),
-                      ],
+                    Expanded(
+                      flex: 70,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.star_rounded, size: 14, color: BlushyColors.warning),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  item.keyChange,
+                                  style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            "AI Summary: \"${item.aiSummary}\"",
+                            style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.secondaryText, fontStyle: FontStyle.italic, height: 1.4),
+                          ),
+                          if (!isLast) ...[
+                            const SizedBox(height: 16),
+                            const Divider(height: 1, color: Color(0xFFF5F0EB)),
+                          ],
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               );
             }).toList(),
           ),
@@ -5895,7 +6508,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
         children: [
           Text(
             "MONTHLY REFLECTION",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -5908,12 +6521,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               padding: const EdgeInsets.symmetric(vertical: 8.0),
               child: Row(
                 children: [
-                  const Icon(Icons.check_circle, color: Colors.green, size: 20),
+                  const Icon(Icons.check_circle, color: BlushyColors.success, size: 20),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Text(
                       m,
-                      style: GoogleFonts.inter(fontSize: 13, color: BlushyColors.text, fontWeight: FontWeight.w500),
+                      style: GoogleFonts.poppins(fontSize: 13, color: BlushyColors.text, fontWeight: FontWeight.w500),
                     ),
                   ),
                 ],
@@ -5923,12 +6536,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           const Divider(height: 36, color: Color(0xFFF5F0EB)),
           Text(
             "SIA'S REFLECTION SUMMARY",
-            style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+            style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.primary),
           ),
           const SizedBox(height: 8),
           Text(
             "\"This month, you took incredible control over your care plan. By tracking consistent daily check-ins, we verified significant glucose-androgen improvements together.\"",
-            style: GoogleFonts.cormorantGaramond(
+            style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.w600,
               color: BlushyColors.text,
@@ -5970,6 +6583,8 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       const SizedBox(height: 32),
                       _buildHormonalSiaInsights(),
                       const SizedBox(height: 32),
+                      _buildHormonalAppointmentSummary(),
+                      const SizedBox(height: 32),
                       _buildHormonalPatterns(),
                       const SizedBox(height: 32),
                       _buildHormonalCarePlan(),
@@ -6007,6 +6622,8 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       _buildHormonalCheckIn(),
                       const SizedBox(height: 48),
                       _buildHormonalSiaInsights(),
+                      const SizedBox(height: 48),
+                      _buildHormonalAppointmentSummary(),
                       const SizedBox(height: 48),
                       _buildHormonalPatterns(),
                       const SizedBox(height: 48),
@@ -6061,6 +6678,8 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                                 _buildHormonalCheckIn(),
                                 const SizedBox(height: 48),
                                 _buildHormonalSiaInsights(),
+                                const SizedBox(height: 48),
+                                _buildHormonalAppointmentSummary(),
                                 const SizedBox(height: 48),
                                 _buildHormonalCarePlan(),
                                 const SizedBox(height: 48),
@@ -6143,7 +6762,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               const SizedBox(width: 8),
               Text(
                 "SIA'S FERTILITY BRIEF",
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                   color: BlushyColors.primary,
@@ -6155,7 +6774,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           const SizedBox(height: 20),
           Text(
             "Good Morning, $name",
-            style: GoogleFonts.cormorantGaramond(
+            style: GoogleFonts.poppins(
               fontSize: 32,
               fontWeight: FontWeight.w600,
               color: BlushyColors.text,
@@ -6165,7 +6784,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           const SizedBox(height: 12),
           Text(
             "You're in your two-week wait. Be kind to yourself while we wait.",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 15,
               color: BlushyColors.secondaryText,
               height: 1.45,
@@ -6179,12 +6798,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                 children: [
                   Text(
                     "FERTILITY STAGE: TWO WEEK WAIT",
-                    style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                    style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     "Cycle Day 19 • Expected Test Day: August 9",
-                    style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.secondaryText),
+                    style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.secondaryText),
                   ),
                 ],
               ),
@@ -6213,7 +6832,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   ),
                   child: Text(
                     "Today's Check-In",
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.poppins(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -6233,7 +6852,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   ),
                   child: Text(
                     "Ask Sia",
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.poppins(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
                     ),
@@ -6259,7 +6878,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             children: [
               Text(
                 "FERTILITY TIMELINE",
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                   color: BlushyColors.secondaryText,
@@ -6269,7 +6888,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               const SizedBox(height: 6),
               Text(
                 "Your Fertility Journey",
-                style: GoogleFonts.cormorantGaramond(
+                style: GoogleFonts.poppins(
                   fontSize: 22,
                   fontWeight: FontWeight.w500,
                   color: BlushyColors.text,
@@ -6297,7 +6916,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     children: [
                       Text(
                         "Cycle Day 19",
-                        style: GoogleFonts.cormorantGaramond(
+                        style: GoogleFonts.poppins(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
                           color: BlushyColors.text,
@@ -6306,7 +6925,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       const SizedBox(height: 2),
                       Text(
                         "Expected Ovulation: July 23 (Completed)",
-                        style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.secondaryText),
+                        style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.secondaryText),
                       ),
                     ],
                   ),
@@ -6324,7 +6943,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         ),
-                        child: Text("Log Ovulation", style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold)),
+                        child: Text("Log Ovulation", style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold)),
                       ),
                       const SizedBox(width: 8),
                       ElevatedButton(
@@ -6341,7 +6960,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                         ),
                         child: Text(
                           "Log Period",
-                          style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
+                          style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
                         ),
                       ),
                     ],
@@ -6393,11 +7012,11 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
   // --- SECTION 3: TODAY'S CHECK-IN ---
   Widget _buildTtcCheckIn() {
     final List<Map<String, dynamic>> moodOptions = [
-      {"icon": "😊", "label": "Hopeful"},
-      {"icon": "😐", "label": "Calm"},
-      {"icon": "😣", "label": "Anxious"},
-      {"icon": "😴", "label": "Tired"},
-      {"icon": "😤", "label": "Sensitive"},
+      {"icon": "", "label": "Hopeful"},
+      {"icon": "", "label": "Calm"},
+      {"icon": "", "label": "Anxious"},
+      {"icon": "", "label": "Tired"},
+      {"icon": "", "label": "Sensitive"},
     ];
 
     final List<String> mucusOptions = ["Dry", "Sticky", "Creamy", "Eggwhite"];
@@ -6413,7 +7032,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "TODAY'S CHECK-IN",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -6435,7 +7054,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               // Mood Selector
               Text(
                 "MOOD",
-                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
+                style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
               ),
               const SizedBox(height: 12),
               Row(
@@ -6477,7 +7096,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                         const SizedBox(height: 6),
                         Text(
                           opt['label'],
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.poppins(
                             fontSize: 10,
                             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                             color: isSelected ? BlushyColors.primary : BlushyColors.secondaryText,
@@ -6511,15 +7130,15 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               // BBT Temperature Slider
               Text(
                 "BASAL BODY TEMPERATURE (BBT)",
-                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
+                style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
               ),
               const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    "${_ttcBbt.toStringAsFixed(1)}°C",
-                    style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                    "${_ttcBbt.toStringAsFixed(1)}C",
+                    style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                   ),
                   Expanded(
                     child: Slider(
@@ -6554,7 +7173,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               // Notes & M Studio triggers
               Text(
                 "NOTES & M STUDIO",
-                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
+                style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
               ),
               const SizedBox(height: 12),
               Row(
@@ -6637,7 +7256,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "FERTILITY INSIGHTS",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -6667,7 +7286,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       Expanded(
                         child: Text(
                           item['insight']!,
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.poppins(
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
                             color: BlushyColors.text,
@@ -6682,7 +7301,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     children: [
                       TextButton(
                         onPressed: () => _openAskSiaChat(context, "Tell me about: ${item['insight']}"),
-                        child: Text("Ask Sia", style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.primary)),
+                        child: Text("Ask Sia", style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.primary)),
                       ),
                       const SizedBox(width: 12),
                       TextButton(
@@ -6691,7 +7310,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                         },
                         child: Text(
                           "Learn More",
-                          style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                          style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                         ),
                       ),
                     ],
@@ -6724,7 +7343,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "TODAY'S PLAN",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -6756,12 +7375,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                         children: [
                           Text(
                             item['title'] as String,
-                            style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                            style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             item['desc'] as String,
-                            style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.secondaryText, height: 1.45),
+                            style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.secondaryText, height: 1.45),
                           ),
                         ],
                       ),
@@ -6800,7 +7419,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
         {"title": "Calming the Nervous System", "desc": "Simple daily mindfulness triggers to keep autonomic nervous signals balanced."}
       ],
       "Understanding BBT": [
-        {"title": "The Progesterone Thermal Shift", "desc": "Why core body temperature jumps 0.3°C - 0.5°C immediately after ovulation occurs."},
+        {"title": "The Progesterone Thermal Shift", "desc": "Why core body temperature jumps 0.3C - 0.5C immediately after ovulation occurs."},
         {"title": "Identifying Implantation Dips", "desc": "Understanding mid-luteal temperature fluctuations without countdown anxiety."}
       ]
     };
@@ -6814,7 +7433,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "LEARN",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -6843,7 +7462,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   ),
                   child: Text(
                     topic,
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.poppins(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                       color: isSelected ? Colors.white : BlushyColors.text,
@@ -6872,12 +7491,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   children: [
                     Text(
                       article['title']!,
-                      style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                      style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: BlushyColors.text),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       article['desc']!,
-                      style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.secondaryText, height: 1.4),
+                      style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.secondaryText, height: 1.4),
                     ),
                     const SizedBox(height: 16),
                     Row(
@@ -6888,7 +7507,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                           },
                           child: Text(
                             "Read",
-                            style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                            style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                           ),
                         ),
                         const Spacer(),
@@ -6939,7 +7558,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "PARTNER MODE",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -6964,24 +7583,24 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   const SizedBox(width: 12),
                   Text(
                     "Shared Timeline & Reminders",
-                    style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                    style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: BlushyColors.text),
                   ),
                 ],
               ),
               const SizedBox(height: 16),
               Text(
                 "Encouraging Message:",
-                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
+                style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
               ),
               const SizedBox(height: 4),
               Text(
                 "\"Every step we take together brings us closer. I'm right here with you today.\"",
-                style: GoogleFonts.cormorantGaramond(fontSize: 16, fontStyle: FontStyle.italic, color: BlushyColors.text, fontWeight: FontWeight.w600),
+                style: GoogleFonts.poppins(fontSize: 16, fontStyle: FontStyle.italic, color: BlushyColors.text, fontWeight: FontWeight.w600),
               ),
               const Divider(height: 32, color: Color(0xFFF5F0EB)),
               Text(
                 "PARTNER TASKS & CONVERSATION STARTERS",
-                style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText, letterSpacing: 1.0),
+                style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText, letterSpacing: 1.0),
               ),
               const SizedBox(height: 12),
               ...tasks.map((t) {
@@ -6994,7 +7613,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       Expanded(
                         child: Text(
                           t['task']!,
-                          style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.text),
+                          style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.text),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -7006,7 +7625,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                         ),
                         child: Text(
                           t['who']!,
-                          style: GoogleFonts.inter(fontSize: 8, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
+                          style: GoogleFonts.poppins(fontSize: 8, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
                         ),
                       ),
                     ],
@@ -7047,7 +7666,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "MY PATTERNS",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -7071,17 +7690,17 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                 children: [
                   Text(
                     card['title']!,
-                    style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.primary, letterSpacing: 1.0),
+                    style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.primary, letterSpacing: 1.0),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     card['desc']!,
-                    style: GoogleFonts.cormorantGaramond(fontSize: 18, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                    style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: BlushyColors.text),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     card['detail']!,
-                    style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.secondaryText, height: 1.4),
+                    style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.secondaryText, height: 1.4),
                   ),
                   const SizedBox(height: 16),
                   Row(
@@ -7089,14 +7708,14 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     children: [
                       TextButton(
                         onPressed: () => _openAskSiaChat(context, "Explain this pattern: ${card['title']}"),
-                        child: Text("Ask Sia", style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.primary)),
+                        child: Text("Ask Sia", style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.primary)),
                       ),
                       const SizedBox(width: 8),
                       TextButton(
                         onPressed: () {
                           _showArticleDialog(context, card['title']!, "Clinical pattern maps: ${card['detail']}");
                         },
-                        child: Text("Learn More", style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary)),
+                        child: Text("Learn More", style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary)),
                       ),
                     ],
                   ),
@@ -7126,7 +7745,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "JOURNEY TIMELINE",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -7151,7 +7770,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     flex: 25,
                     child: Text(
                       item['date']!,
-                      style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                      style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                     ),
                   ),
                   Expanded(
@@ -7161,12 +7780,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       children: [
                         Text(
                           item['title']!,
-                          style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                          style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           item['detail']!,
-                          style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.secondaryText),
+                          style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.secondaryText),
                         ),
                         const Divider(height: 24, color: Color(0xFFF5F0EB)),
                       ],
@@ -7202,7 +7821,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
         children: [
           Text(
             "MONTHLY REFLECTION",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -7220,7 +7839,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   Expanded(
                     child: Text(
                       m,
-                      style: GoogleFonts.inter(fontSize: 13, color: BlushyColors.text, fontWeight: FontWeight.w500),
+                      style: GoogleFonts.poppins(fontSize: 13, color: BlushyColors.text, fontWeight: FontWeight.w500),
                     ),
                   ),
                 ],
@@ -7230,12 +7849,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           const Divider(height: 36, color: Color(0xFFF5F0EB)),
           Text(
             "SIA'S MONTHLY LETTER SUMMARY",
-            style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+            style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.primary),
           ),
           const SizedBox(height: 8),
           Text(
             "\"This cycle, you built a deeper connection to your rhythm. Your steady logging helped identify ovulation patterns and kept stress levels balanced. We are walking this hopeful path together.\"",
-            style: GoogleFonts.cormorantGaramond(
+            style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.w600,
               color: BlushyColors.text,
@@ -7450,7 +8069,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               const SizedBox(width: 8),
               Text(
                 "TODAY WITH BABY",
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                   color: BlushyColors.primary,
@@ -7462,7 +8081,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           const SizedBox(height: 20),
           Text(
             "Good Morning, $name",
-            style: GoogleFonts.cormorantGaramond(
+            style: GoogleFonts.poppins(
               fontSize: 32,
               fontWeight: FontWeight.w600,
               color: BlushyColors.text,
@@ -7472,7 +8091,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           const SizedBox(height: 12),
           Text(
             "Your baby is growing rapidly this week. Don't forget to take moments to rest—you deserve them.",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 15,
               color: BlushyColors.secondaryText,
               height: 1.45,
@@ -7486,12 +8105,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                 children: [
                   Text(
                     "PREGNANCY STATUS: WEEK 24",
-                    style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                    style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     "Second Trimester • 112 Days To Go",
-                    style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.secondaryText),
+                    style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.secondaryText),
                   ),
                 ],
               ),
@@ -7520,7 +8139,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   ),
                   child: Text(
                     "Today's Check-In",
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.poppins(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -7540,7 +8159,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   ),
                   child: Text(
                     "Ask Sia",
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.poppins(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
                     ),
@@ -7572,7 +8191,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             children: [
               Text(
                 "BABY THIS WEEK",
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                   color: BlushyColors.secondaryText,
@@ -7582,7 +8201,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               const SizedBox(height: 6),
               Text(
                 "Week 24 Development",
-                style: GoogleFonts.cormorantGaramond(
+                style: GoogleFonts.poppins(
                   fontSize: 22,
                   fontWeight: FontWeight.w500,
                   color: BlushyColors.text,
@@ -7611,7 +8230,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       children: [
                         Text(
                           "Your baby is about the size of a cantaloupe melon.",
-                          style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.bold, color: BlushyColors.primary, height: 1.3),
+                          style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.bold, color: BlushyColors.primary, height: 1.3),
                         ),
                         const SizedBox(height: 16),
                         ...highlights.map((h) {
@@ -7624,7 +8243,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                                 Expanded(
                                   child: Text(
                                     h,
-                                    style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.secondaryText),
+                                    style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.secondaryText),
                                   ),
                                 ),
                               ],
@@ -7646,7 +8265,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       ),
                       child: Center(
                         child: Text(
-                          "🍉", // Fetus / baby size visual representation
+                          "", // Fetus / baby size visual representation
                           style: const TextStyle(fontSize: 48),
                         ),
                       ),
@@ -7681,11 +8300,11 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
   // --- SECTION 3: YOUR PREGNANCY JOURNEY ---
   Widget _buildPregnancyJourneyTimeline() {
     final List<Map<String, dynamic>> milestones = [
-      {"title": "First Trimester Complete", "status": "Completed", "icon": Icons.check_circle, "color": Colors.green},
-      {"title": "20 Week Scan Done", "status": "Completed", "icon": Icons.check_circle, "color": Colors.green},
-      {"title": "Third Trimester Begins", "status": "Week 28", "icon": Icons.schedule, "color": Colors.orangeAccent},
-      {"title": "Birth Preparation", "status": "Week 32", "icon": Icons.schedule, "color": Colors.grey},
-      {"title": "Hospital Bag Prep", "status": "Week 36", "icon": Icons.schedule, "color": Colors.grey},
+      {"title": "First Trimester Complete", "status": "Completed", "icon": Icons.check_circle, "color": BlushyColors.success},
+      {"title": "20 Week Scan Done", "status": "Completed", "icon": Icons.check_circle, "color": BlushyColors.success},
+      {"title": "Third Trimester Begins", "status": "Week 28", "icon": Icons.schedule, "color": BlushyColors.warning},
+      {"title": "Birth Preparation", "status": "Week 32", "icon": Icons.schedule, "color": BlushyColors.disabled},
+      {"title": "Hospital Bag Prep", "status": "Week 36", "icon": Icons.schedule, "color": BlushyColors.disabled},
     ];
 
     return Column(
@@ -7698,7 +8317,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             children: [
               Text(
                 "YOUR PREGNANCY JOURNEY",
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                   color: BlushyColors.secondaryText,
@@ -7708,7 +8327,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               const SizedBox(height: 6),
               Text(
                 "Trimester & Milestone Progress",
-                style: GoogleFonts.cormorantGaramond(
+                style: GoogleFonts.poppins(
                   fontSize: 22,
                   fontWeight: FontWeight.w500,
                   color: BlushyColors.text,
@@ -7736,12 +8355,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     children: [
                       Text(
                         "Week 24 of 40",
-                        style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                        style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.bold, color: BlushyColors.text),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         "Expected Due Date: November 15",
-                        style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.secondaryText),
+                        style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.secondaryText),
                       ),
                     ],
                   ),
@@ -7753,7 +8372,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     ),
                     child: Text(
                       "Trimester 2",
-                      style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                      style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                     ),
                   ),
                 ],
@@ -7772,7 +8391,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               const SizedBox(height: 28),
               Text(
                 "JOURNEY MILESTONES",
-                style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText, letterSpacing: 1.0),
+                style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText, letterSpacing: 1.0),
               ),
               const SizedBox(height: 16),
               ...milestones.map((m) {
@@ -7785,12 +8404,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       Expanded(
                         child: Text(
                           m['title'] as String,
-                          style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: BlushyColors.text),
+                          style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: BlushyColors.text),
                         ),
                       ),
                       Text(
                         m['status'] as String,
-                        style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.secondaryText),
+                        style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.secondaryText),
                       ),
                     ],
                   ),
@@ -7806,11 +8425,11 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
   // --- SECTION 4: TODAY'S CHECK-IN ---
   Widget _buildPregnancyCheckIn() {
     final List<Map<String, dynamic>> moodOptions = [
-      {"icon": "😊", "label": "Joyful"},
-      {"icon": "😐", "label": "Calm"},
-      {"icon": "😴", "label": "Tired"},
-      {"icon": "😣", "label": "Nauseous"},
-      {"icon": "😤", "label": "Moody"},
+      {"icon": "", "label": "Joyful"},
+      {"icon": "", "label": "Calm"},
+      {"icon": "", "label": "Tired"},
+      {"icon": "", "label": "Nauseous"},
+      {"icon": "", "label": "Moody"},
     ];
 
     final List<String> movementOptions = ["Active", "Normal", "Quiet"];
@@ -7825,7 +8444,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "TODAY'S CHECK-IN",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -7847,7 +8466,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               // Mood Selector
               Text(
                 "MOOD",
-                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
+                style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
               ),
               const SizedBox(height: 12),
               Row(
@@ -7889,7 +8508,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                         const SizedBox(height: 6),
                         Text(
                           opt['label'],
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.poppins(
                             fontSize: 10,
                             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                             color: isSelected ? BlushyColors.primary : BlushyColors.secondaryText,
@@ -7911,7 +8530,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               // Kick Count logger
               Text(
                 "KICK COUNT (DAILY)",
-                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
+                style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
               ),
               const SizedBox(height: 12),
               Row(
@@ -7926,7 +8545,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   ),
                   Text(
                     "$_pregnancyKickCount Kicks",
-                    style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                    style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                   ),
                   IconButton(
                     icon: const Icon(Icons.add_circle_outline, color: BlushyColors.primary),
@@ -7957,7 +8576,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               // Optional Blood Pressure / Blood Sugar
               Text(
                 "OPTIONAL HEALTH DATA",
-                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
+                style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
               ),
               const SizedBox(height: 12),
               Row(
@@ -8022,7 +8641,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               // Notes & Reflections
               Text(
                 "NOTES & REFLECTIONS",
-                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
+                style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
               ),
               const SizedBox(height: 12),
               Row(
@@ -8105,7 +8724,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "SIA INSIGHTS",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -8135,7 +8754,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       Expanded(
                         child: Text(
                           item['insight']!,
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.poppins(
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
                             color: BlushyColors.text,
@@ -8150,7 +8769,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     children: [
                       TextButton(
                         onPressed: () => _openAskSiaChat(context, "Tell me about: ${item['insight']}"),
-                        child: Text("Ask Sia", style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.primary)),
+                        child: Text("Ask Sia", style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.primary)),
                       ),
                       const SizedBox(width: 12),
                       TextButton(
@@ -8159,7 +8778,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                         },
                         child: Text(
                           "Learn More",
-                          style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                          style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                         ),
                       ),
                     ],
@@ -8190,7 +8809,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "TODAY'S CARE PLAN",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -8222,12 +8841,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                         children: [
                           Text(
                             item['title'] as String,
-                            style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                            style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             item['desc'] as String,
-                            style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.secondaryText, height: 1.45),
+                            style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.secondaryText, height: 1.45),
                           ),
                         ],
                       ),
@@ -8259,7 +8878,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "BABY PREPARATION",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -8284,7 +8903,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   const SizedBox(width: 12),
                   Text(
                     "Pregnancy Prep & Lists",
-                    style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                    style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: BlushyColors.text),
                   ),
                 ],
               ),
@@ -8299,7 +8918,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       Expanded(
                         child: Text(
                           c['item']!,
-                          style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.text),
+                          style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.text),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -8311,7 +8930,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                         ),
                         child: Text(
                           c['unlock']!,
-                          style: GoogleFonts.inter(fontSize: 8, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
+                          style: GoogleFonts.poppins(fontSize: 8, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
                         ),
                       ),
                     ],
@@ -8363,7 +8982,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "LEARN",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -8392,7 +9011,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   ),
                   child: Text(
                     topic,
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.poppins(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                       color: isSelected ? Colors.white : BlushyColors.text,
@@ -8421,12 +9040,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   children: [
                     Text(
                       article['title']!,
-                      style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                      style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: BlushyColors.text),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       article['desc']!,
-                      style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.secondaryText, height: 1.4),
+                      style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.secondaryText, height: 1.4),
                     ),
                     const SizedBox(height: 16),
                     Row(
@@ -8437,7 +9056,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                           },
                           child: Text(
                             "Read",
-                            style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                            style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                           ),
                         ),
                         const Spacer(),
@@ -8488,7 +9107,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "PARTNER & FAMILY",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -8513,14 +9132,14 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   const SizedBox(width: 12),
                   Text(
                     "Shared Pregnancy Timeline",
-                    style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                    style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: BlushyColors.text),
                   ),
                 ],
               ),
               const SizedBox(height: 16),
               Text(
                 "Coordinated Checklists & Tasks:",
-                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
+                style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
               ),
               const SizedBox(height: 12),
               ...tasks.map((t) {
@@ -8533,7 +9152,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       Expanded(
                         child: Text(
                           t['task']!,
-                          style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.text),
+                          style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.text),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -8545,7 +9164,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                         ),
                         child: Text(
                           t['who']!,
-                          style: GoogleFonts.inter(fontSize: 8, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
+                          style: GoogleFonts.poppins(fontSize: 8, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
                         ),
                       ),
                     ],
@@ -8576,7 +9195,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "MY JOURNEY",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -8601,7 +9220,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     flex: 25,
                     child: Text(
                       item['date']!,
-                      style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                      style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                     ),
                   ),
                   Expanded(
@@ -8611,12 +9230,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       children: [
                         Text(
                           item['title']!,
-                          style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                          style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           item['detail']!,
-                          style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.secondaryText),
+                          style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.secondaryText),
                         ),
                         const Divider(height: 24, color: Color(0xFFF5F0EB)),
                       ],
@@ -8652,7 +9271,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
         children: [
           Text(
             "MONTHLY REFLECTION",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -8665,12 +9284,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               padding: const EdgeInsets.symmetric(vertical: 8.0),
               child: Row(
                 children: [
-                  const Icon(Icons.check_circle, color: Colors.green, size: 20),
+                  const Icon(Icons.check_circle, color: BlushyColors.success, size: 20),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Text(
                       item,
-                      style: GoogleFonts.inter(fontSize: 13, color: BlushyColors.text, fontWeight: FontWeight.w500),
+                      style: GoogleFonts.poppins(fontSize: 13, color: BlushyColors.text, fontWeight: FontWeight.w500),
                     ),
                   ),
                 ],
@@ -8680,12 +9299,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           const Divider(height: 36, color: Color(0xFFF5F0EB)),
           Text(
             "SIA'S MONTHLY PREGNANCY REFLECTION",
-            style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+            style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.primary),
           ),
           const SizedBox(height: 8),
           Text(
             "\"This month, you took incredible care of both your changing body and your growing baby. Trimester progress timelines confirm wonderful hydration and stretch routine consistency. You are doing amazing.\"",
-            style: GoogleFonts.cormorantGaramond(
+            style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.w600,
               color: BlushyColors.text,
@@ -8917,7 +9536,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               const SizedBox(width: 8),
               Text(
                 "TODAY'S BRIEF",
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                   color: BlushyColors.primary,
@@ -8929,7 +9548,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           const SizedBox(height: 20),
           Text(
             "Good Morning, $name",
-            style: GoogleFonts.cormorantGaramond(
+            style: GoogleFonts.poppins(
               fontSize: 32,
               fontWeight: FontWeight.w600,
               color: BlushyColors.text,
@@ -8939,7 +9558,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           const SizedBox(height: 12),
           Text(
             "You've already done something incredible. Today, let's take care of you too.",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 15,
               color: BlushyColors.secondaryText,
               height: 1.45,
@@ -8953,12 +9572,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                 children: [
                   Text(
                     "POSTPARTUM RECOVERY: 6 WEEKS",
-                    style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                    style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     "Recovery In Progress • Focus on healing",
-                    style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.secondaryText),
+                    style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.secondaryText),
                   ),
                 ],
               ),
@@ -8987,7 +9606,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   ),
                   child: Text(
                     "Today's Check-In",
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.poppins(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -9007,7 +9626,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   ),
                   child: Text(
                     "Ask Sia",
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.poppins(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
                     ),
@@ -9042,7 +9661,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             children: [
               Text(
                 "YOUR RECOVERY",
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                   color: BlushyColors.secondaryText,
@@ -9052,7 +9671,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               const SizedBox(height: 6),
               Text(
                 "Healing Milestone Timeline",
-                style: GoogleFonts.cormorantGaramond(
+                style: GoogleFonts.poppins(
                   fontSize: 22,
                   fontWeight: FontWeight.w500,
                   color: BlushyColors.text,
@@ -9080,12 +9699,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     children: [
                       Text(
                         "6 Weeks Postpartum",
-                        style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                        style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.bold, color: BlushyColors.text),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         "Upcoming: Week 6 Clinical Check-up",
-                        style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.secondaryText),
+                        style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.secondaryText),
                       ),
                     ],
                   ),
@@ -9099,7 +9718,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     children: [
                       Icon(
                         m['checked'] as bool ? Icons.check_circle : Icons.radio_button_unchecked,
-                        color: m['checked'] as bool ? Colors.green : Colors.grey,
+                        color: m['checked'] as bool ? BlushyColors.success : BlushyColors.disabled,
                         size: 20,
                       ),
                       const SizedBox(width: 14),
@@ -9109,11 +9728,11 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                           children: [
                             Text(
                               m['week'] as String,
-                              style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                              style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
                             ),
                             Text(
                               m['desc'] as String,
-                              style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.secondaryText),
+                              style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.secondaryText),
                             ),
                           ],
                         ),
@@ -9125,7 +9744,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               const Divider(height: 36, color: Color(0xFFF5F0EB)),
               Text(
                 "RECOVERY SUMMARY",
-                style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText, letterSpacing: 1.0),
+                style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText, letterSpacing: 1.0),
               ),
               const SizedBox(height: 12),
               Row(
@@ -9147,11 +9766,11 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
   // --- SECTION 3: TODAY'S WELLBEING (One-tap logging) ---
   Widget _buildPostpartumWellbeing() {
     final List<Map<String, dynamic>> moodOptions = [
-      {"icon": "😊", "label": "Capable"},
-      {"icon": "😐", "label": "Tired"},
-      {"icon": "😣", "label": "Overwhelmed"},
-      {"icon": "😴", "label": "Sleepy"},
-      {"icon": "😤", "label": "Sensitive"},
+      {"icon": "", "label": "Capable"},
+      {"icon": "", "label": "Tired"},
+      {"icon": "", "label": "Overwhelmed"},
+      {"icon": "", "label": "Sleepy"},
+      {"icon": "", "label": "Sensitive"},
     ];
 
     final List<String> feedingOptions = ["Breastfeeding", "Bottle Feeding", "Pumping"];
@@ -9168,7 +9787,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "TODAY'S WELLBEING",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -9190,7 +9809,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               // Mood Selector
               Text(
                 "MOOD",
-                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
+                style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
               ),
               const SizedBox(height: 12),
               Row(
@@ -9232,7 +9851,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                         const SizedBox(height: 6),
                         Text(
                           opt['label'],
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.poppins(
                             fontSize: 10,
                             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                             color: isSelected ? BlushyColors.primary : BlushyColors.secondaryText,
@@ -9284,7 +9903,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               // Optional Weight
               Text(
                 "WEIGHT (OPTIONAL)",
-                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
+                style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
               ),
               const SizedBox(height: 12),
               OutlinedButton.icon(
@@ -9317,7 +9936,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               // Notes & Reflections
               Text(
                 "NOTES & REFLECTIONS",
-                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
+                style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
               ),
               const SizedBox(height: 12),
               Row(
@@ -9400,7 +10019,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "SIA INSIGHTS",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -9430,7 +10049,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       Expanded(
                         child: Text(
                           item['insight']!,
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.poppins(
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
                             color: BlushyColors.text,
@@ -9445,7 +10064,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     children: [
                       TextButton(
                         onPressed: () => _openAskSiaChat(context, "Tell me about: ${item['insight']}"),
-                        child: Text("Ask Sia", style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.primary)),
+                        child: Text("Ask Sia", style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.primary)),
                       ),
                       const SizedBox(width: 12),
                       TextButton(
@@ -9454,7 +10073,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                         },
                         child: Text(
                           "Learn More",
-                          style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                          style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                         ),
                       ),
                     ],
@@ -9485,7 +10104,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "YOUR CARE PLAN",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -9517,12 +10136,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                         children: [
                           Text(
                             item['title'] as String,
-                            style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                            style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             item['desc'] as String,
-                            style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.secondaryText, height: 1.45),
+                            style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.secondaryText, height: 1.45),
                           ),
                         ],
                       ),
@@ -9553,7 +10172,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "BABY & YOU",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -9578,7 +10197,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   const SizedBox(width: 12),
                   Text(
                     "Mother-Baby Coordinated Tasks",
-                    style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                    style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: BlushyColors.text),
                   ),
                 ],
               ),
@@ -9593,12 +10212,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       Expanded(
                         child: Text(
                           c['item']!,
-                          style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.text, fontWeight: FontWeight.w600),
+                          style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.text, fontWeight: FontWeight.w600),
                         ),
                       ),
                       Text(
                         c['val']!,
-                        style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.secondaryText),
+                        style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.secondaryText),
                       ),
                     ],
                   ),
@@ -9649,7 +10268,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "LEARN",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -9678,7 +10297,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   ),
                   child: Text(
                     topic,
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.poppins(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                       color: isSelected ? Colors.white : BlushyColors.text,
@@ -9707,12 +10326,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   children: [
                     Text(
                       article['title']!,
-                      style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                      style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: BlushyColors.text),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       article['desc']!,
-                      style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.secondaryText, height: 1.4),
+                      style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.secondaryText, height: 1.4),
                     ),
                     const SizedBox(height: 16),
                     Row(
@@ -9723,7 +10342,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                           },
                           child: Text(
                             "Read",
-                            style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                            style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                           ),
                         ),
                         const Spacer(),
@@ -9774,7 +10393,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "COMMUNITY",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -9808,7 +10427,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     ),
                     child: Text(
                       tab,
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.poppins(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
                         color: isSelected ? BlushyColors.text : BlushyColors.secondaryText,
@@ -9839,21 +10458,21 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       children: [
                         Text(
                           post['user']!,
-                          style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                          style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                         ),
                         const SizedBox(width: 6),
-                        Container(width: 4, height: 4, decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.grey)),
+                        Container(width: 4, height: 4, decoration: const BoxDecoration(shape: BoxShape.circle, color: BlushyColors.disabled)),
                         const SizedBox(width: 6),
                         Text(
                           "Support Group thread",
-                          style: GoogleFonts.inter(fontSize: 9, color: BlushyColors.secondaryText),
+                          style: GoogleFonts.poppins(fontSize: 9, color: BlushyColors.secondaryText),
                         ),
                       ],
                     ),
                     const SizedBox(height: 4),
                     Text(
                       post['text']!,
-                      style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.text),
+                      style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.text),
                     ),
                     const Divider(height: 24, color: Color(0xFFF5F0EB)),
                   ],
@@ -9883,7 +10502,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "MY JOURNEY",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -9908,7 +10527,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     flex: 25,
                     child: Text(
                       item['date']!,
-                      style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                      style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                     ),
                   ),
                   Expanded(
@@ -9918,12 +10537,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       children: [
                         Text(
                           item['title']!,
-                          style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                          style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           item['detail']!,
-                          style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.secondaryText),
+                          style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.secondaryText),
                         ),
                         const Divider(height: 24, color: Color(0xFFF5F0EB)),
                       ],
@@ -9959,7 +10578,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
         children: [
           Text(
             "MONTHLY REFLECTION",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -9972,12 +10591,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               padding: const EdgeInsets.symmetric(vertical: 8.0),
               child: Row(
                 children: [
-                  const Icon(Icons.check_circle, color: Colors.green, size: 20),
+                  const Icon(Icons.check_circle, color: BlushyColors.success, size: 20),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Text(
                       item,
-                      style: GoogleFonts.inter(fontSize: 13, color: BlushyColors.text, fontWeight: FontWeight.w500),
+                      style: GoogleFonts.poppins(fontSize: 13, color: BlushyColors.text, fontWeight: FontWeight.w500),
                     ),
                   ),
                 ],
@@ -9987,12 +10606,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           const Divider(height: 36, color: Color(0xFFF5F0EB)),
           Text(
             "SIA'S MONTHLY POSTPARTUM REFLECTION",
-            style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+            style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.primary),
           ),
           const SizedBox(height: 8),
           Text(
             "\"This month, you navigated tissue healing, pelvic recovery, and sleep disruptions with immense grace. Your recovery check-ins confirm fantastic hydration and core exercise consistency. We celebrate you today.\"",
-            style: GoogleFonts.cormorantGaramond(
+            style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.w600,
               color: BlushyColors.text,
@@ -10207,7 +10826,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               const SizedBox(width: 8),
               Text(
                 "SIA'S DAILY BRIEF",
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                   color: BlushyColors.primary,
@@ -10219,7 +10838,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           const SizedBox(height: 20),
           Text(
             "Good Morning, $name",
-            style: GoogleFonts.cormorantGaramond(
+            style: GoogleFonts.poppins(
               fontSize: 32,
               fontWeight: FontWeight.w600,
               color: BlushyColors.text,
@@ -10229,7 +10848,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           const SizedBox(height: 12),
           Text(
             "Your body is adapting to a new chapter. Every experience is unique, and we'll understand yours together.",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 15,
               color: BlushyColors.secondaryText,
               height: 1.45,
@@ -10243,12 +10862,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                 children: [
                   Text(
                     "CYCLE STATUS: CYCLE DAY 47",
-                    style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                    style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     "Waiting For Next Period • Perimenopause Journey",
-                    style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.secondaryText),
+                    style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.secondaryText),
                   ),
                 ],
               ),
@@ -10277,7 +10896,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   ),
                   child: Text(
                     "Today's Check-In",
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.poppins(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -10297,7 +10916,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   ),
                   child: Text(
                     "Ask Sia",
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.poppins(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
                     ),
@@ -10325,7 +10944,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             children: [
               Text(
                 "MY CHANGING CYCLE",
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                   color: BlushyColors.secondaryText,
@@ -10335,7 +10954,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               const SizedBox(height: 6),
               Text(
                 "Transition Tracking & History",
-                style: GoogleFonts.cormorantGaramond(
+                style: GoogleFonts.poppins(
                   fontSize: 22,
                   fontWeight: FontWeight.w500,
                   color: BlushyColors.text,
@@ -10363,12 +10982,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     children: [
                       Text(
                         "Cycle Day 47",
-                        style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                        style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: BlushyColors.text),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         "Last Period: 47 Days Ago",
-                        style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.secondaryText),
+                        style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.secondaryText),
                       ),
                     ],
                   ),
@@ -10380,7 +10999,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     ),
                     child: Text(
                       "Highly Variable",
-                      style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                      style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                     ),
                   ),
                 ],
@@ -10393,7 +11012,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   children: [
                     Text(
                       "Day 47",
-                      style: GoogleFonts.cormorantGaramond(
+                      style: GoogleFonts.poppins(
                         fontSize: 32,
                         fontWeight: FontWeight.bold,
                         color: BlushyColors.text,
@@ -10401,7 +11020,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     ),
                     Text(
                       "Late Phase",
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.poppins(
                         fontSize: 11,
                         color: BlushyColors.secondaryText,
                       ),
@@ -10432,7 +11051,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
 
               Text(
                 "RECENT CYCLE HISTORY",
-                style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText, letterSpacing: 1.0),
+                style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText, letterSpacing: 1.0),
               ),
               const SizedBox(height: 12),
               SizedBox(
@@ -10454,7 +11073,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       child: Center(
                         child: Text(
                           "$cycleLen Days",
-                          style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                          style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: BlushyColors.text),
                         ),
                       ),
                     );
@@ -10482,7 +11101,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                 ),
                 child: Text(
                   "\"Your cycles have gradually become less predictable over recent months. We're noticing longer gaps between periods, which is typical for the perimenopause transition.\"",
-                  style: GoogleFonts.inter(fontSize: 12, fontStyle: FontStyle.italic, color: BlushyColors.secondaryText),
+                  style: GoogleFonts.poppins(fontSize: 12, fontStyle: FontStyle.italic, color: BlushyColors.secondaryText),
                 ),
               ),
               const SizedBox(height: 24),
@@ -10507,7 +11126,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       ),
                       child: Text(
                         "Log Period",
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.poppins(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
@@ -10529,7 +11148,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       ),
                       child: Text(
                         "View Full History",
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.poppins(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
                         ),
@@ -10548,11 +11167,11 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
   // --- SECTION 3: TODAY'S CHECK-IN ---
   Widget _buildPeriWellbeing() {
     final List<Map<String, dynamic>> moodOptions = [
-      {"icon": "😊", "label": "Balanced"},
-      {"icon": "😐", "label": "Tired"},
-      {"icon": "😣", "label": "Anxious"},
-      {"icon": "🥵", "label": "Warm"},
-      {"icon": "😤", "label": "Irritable"},
+      {"icon": "", "label": "Balanced"},
+      {"icon": "", "label": "Tired"},
+      {"icon": "", "label": "Anxious"},
+      {"icon": "", "label": "Warm"},
+      {"icon": "", "label": "Irritable"},
     ];
 
     final List<String> flashOptions = ["None", "Mild", "Intense"];
@@ -10570,7 +11189,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "TODAY'S CHECK-IN",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -10592,7 +11211,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               // Mood Selector
               Text(
                 "MOOD",
-                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
+                style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
               ),
               const SizedBox(height: 12),
               Row(
@@ -10634,7 +11253,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                         const SizedBox(height: 6),
                         Text(
                           opt['label'],
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.poppins(
                             fontSize: 10,
                             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                             color: isSelected ? BlushyColors.primary : BlushyColors.secondaryText,
@@ -10692,7 +11311,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               // Optional Weight
               Text(
                 "WEIGHT (OPTIONAL)",
-                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
+                style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
               ),
               const SizedBox(height: 12),
               OutlinedButton.icon(
@@ -10725,7 +11344,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               // Notes & Reflections
               Text(
                 "NOTES & REFLECTIONS",
-                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
+                style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
               ),
               const SizedBox(height: 12),
               Row(
@@ -10808,7 +11427,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "SIA INSIGHTS",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -10838,7 +11457,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       Expanded(
                         child: Text(
                           item['insight']!,
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.poppins(
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
                             color: BlushyColors.text,
@@ -10853,7 +11472,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     children: [
                       TextButton(
                         onPressed: () => _openAskSiaChat(context, "Tell me about: ${item['insight']}"),
-                        child: Text("Ask Sia", style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.primary)),
+                        child: Text("Ask Sia", style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.primary)),
                       ),
                       const SizedBox(width: 12),
                       TextButton(
@@ -10862,7 +11481,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                         },
                         child: Text(
                           "Learn More",
-                          style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                          style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                         ),
                       ),
                     ],
@@ -10916,7 +11535,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             children: [
               Text(
                 "UNDERSTANDING MY PATTERNS",
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                   color: BlushyColors.secondaryText,
@@ -10926,7 +11545,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               const SizedBox(height: 6),
               Text(
                 "AI-Generated Perimenopause Cards",
-                style: GoogleFonts.cormorantGaramond(
+                style: GoogleFonts.poppins(
                   fontSize: 22,
                   fontWeight: FontWeight.w500,
                   color: BlushyColors.text,
@@ -10958,17 +11577,17 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   children: [
                     Text(
                       card['title']!.toUpperCase(),
-                      style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.primary, letterSpacing: 1.0),
+                      style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.primary, letterSpacing: 1.0),
                     ),
                     const SizedBox(height: 12),
                     Text(
                       card['desc']!,
-                      style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                      style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: BlushyColors.text),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       "Why This Matters: Shifts reflect endocrine fluctuations during the transition.",
-                      style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.secondaryText),
+                      style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.secondaryText),
                     ),
                     const Spacer(),
                     Row(
@@ -10978,11 +11597,11 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                           onPressed: () {
                             _showArticleDialog(context, card['title']!, card['detail']!);
                           },
-                          child: Text("Learn More", style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary)),
+                          child: Text("Learn More", style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary)),
                         ),
                         TextButton(
                           onPressed: () => _openAskSiaChat(context, "Tell me about my ${card['title']}"),
-                          child: Text("Ask Sia", style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.primary)),
+                          child: Text("Ask Sia", style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.primary)),
                         ),
                       ],
                     ),
@@ -11000,7 +11619,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
   Widget _buildPeriCarePlan() {
     final List<Map<String, dynamic>> recommendations = [
       {"icon": Icons.ac_unit, "title": "Cooling Strategy", "desc": "Keep a cold water mist or small fan nearby during the evening peak hot flash hours."},
-      {"icon": Icons.nightlight_round, "title": "Sleep Support Focus", "desc": "Dim bedroom lights 1 hour before sleep; keep room temperature at 18°C (65°F)."},
+      {"icon": Icons.nightlight_round, "title": "Sleep Support Focus", "desc": "Dim bedroom lights 1 hour before sleep; keep room temperature at 18C (65F)."},
       {"icon": Icons.fitness_center, "title": "Bone Health Strength", "desc": "Incorporate 15 minutes of resistance weights or strength training to support bone mineral densities."},
       {"icon": Icons.restaurant, "title": "Phytoestrogens Nutrition", "desc": "Add flaxseeds, tofu, or soy to meals to naturally cushion estrogen dips gently."},
       {"icon": Icons.check_circle_outline, "title": "Hormone Therapy Reminder", "desc": "Take scheduled estrogen/progesterone supplement according to clinical plan."},
@@ -11013,7 +11632,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "TODAY'S CARE PLAN",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -11045,12 +11664,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                         children: [
                           Text(
                             item['title'] as String,
-                            style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                            style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             item['desc'] as String,
-                            style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.secondaryText, height: 1.45),
+                            style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.secondaryText, height: 1.45),
                           ),
                         ],
                       ),
@@ -11103,7 +11722,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "LEARN",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -11132,7 +11751,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   ),
                   child: Text(
                     topic,
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.poppins(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                       color: isSelected ? Colors.white : BlushyColors.text,
@@ -11161,12 +11780,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   children: [
                     Text(
                       article['title']!,
-                      style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                      style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: BlushyColors.text),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       article['desc']!,
-                      style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.secondaryText, height: 1.4),
+                      style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.secondaryText, height: 1.4),
                     ),
                     const SizedBox(height: 16),
                     Row(
@@ -11177,7 +11796,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                           },
                           child: Text(
                             "Read",
-                            style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                            style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                           ),
                         ),
                         const Spacer(),
@@ -11218,7 +11837,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
     final List<String> tabs = ["Perimenopause", "Hot Flashes", "Sleep", "Mental Wellbeing", "Hormone Therapy"];
     final threads = [
       {"user": "ElenaK", "text": "Starting strength weights next week to support bone health. Any simple routine tips?"},
-      {"user": "Midsommer", "text": "Night sweats have gotten so much better since dropping bedroom temp to 18°C."}
+      {"user": "Midsommer", "text": "Night sweats have gotten so much better since dropping bedroom temp to 18C."}
     ];
 
     return Column(
@@ -11228,7 +11847,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "COMMUNITY",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -11262,7 +11881,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     ),
                     child: Text(
                       tab,
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.poppins(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
                         color: isSelected ? BlushyColors.text : BlushyColors.secondaryText,
@@ -11293,21 +11912,21 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       children: [
                         Text(
                           post['user']!,
-                          style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                          style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                         ),
                         const SizedBox(width: 6),
-                        Container(width: 4, height: 4, decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.grey)),
+                        Container(width: 4, height: 4, decoration: const BoxDecoration(shape: BoxShape.circle, color: BlushyColors.disabled)),
                         const SizedBox(width: 6),
                         Text(
                           "Support Group thread",
-                          style: GoogleFonts.inter(fontSize: 9, color: BlushyColors.secondaryText),
+                          style: GoogleFonts.poppins(fontSize: 9, color: BlushyColors.secondaryText),
                         ),
                       ],
                     ),
                     const SizedBox(height: 4),
                     Text(
                       post['text']!,
-                      style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.text),
+                      style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.text),
                     ),
                     const Divider(height: 24, color: Color(0xFFF5F0EB)),
                   ],
@@ -11337,7 +11956,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "MY TRANSITION",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -11362,7 +11981,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     flex: 25,
                     child: Text(
                       item['date']!,
-                      style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                      style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                     ),
                   ),
                   Expanded(
@@ -11372,12 +11991,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       children: [
                         Text(
                           item['title']!,
-                          style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                          style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           item['detail']!,
-                          style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.secondaryText),
+                          style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.secondaryText),
                         ),
                         const Divider(height: 24, color: Color(0xFFF5F0EB)),
                       ],
@@ -11413,7 +12032,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
         children: [
           Text(
             "MONTHLY REFLECTION",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -11426,12 +12045,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               padding: const EdgeInsets.symmetric(vertical: 8.0),
               child: Row(
                 children: [
-                  const Icon(Icons.check_circle, color: Colors.green, size: 20),
+                  const Icon(Icons.check_circle, color: BlushyColors.success, size: 20),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Text(
                       item,
-                      style: GoogleFonts.inter(fontSize: 13, color: BlushyColors.text, fontWeight: FontWeight.w500),
+                      style: GoogleFonts.poppins(fontSize: 13, color: BlushyColors.text, fontWeight: FontWeight.w500),
                     ),
                   ),
                 ],
@@ -11441,12 +12060,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           const Divider(height: 36, color: Color(0xFFF5F0EB)),
           Text(
             "SIA'S MONTHLY TRANSITION REFLECTION",
-            style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+            style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.primary),
           ),
           const SizedBox(height: 8),
           Text(
             "\"This month, you successfully tracked cycle length fluctuations, evening hot flashes, and hormone therapy consistency with incredible empowerment. Your patterns show positive sleep trends on exercise days. We celebrate your journey.\"",
-            style: GoogleFonts.cormorantGaramond(
+            style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.w600,
               color: BlushyColors.text,
@@ -11661,7 +12280,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               const SizedBox(width: 8),
               Text(
                 "SIA'S DAILY BRIEF",
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                   color: BlushyColors.primary,
@@ -11673,7 +12292,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           const SizedBox(height: 20),
           Text(
             "Good Morning, $name",
-            style: GoogleFonts.cormorantGaramond(
+            style: GoogleFonts.poppins(
               fontSize: 32,
               fontWeight: FontWeight.w600,
               color: BlushyColors.text,
@@ -11683,7 +12302,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           const SizedBox(height: 12),
           Text(
             "Your body has entered a new rhythm. Let's help you feel your best today.",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 15,
               color: BlushyColors.secondaryText,
               height: 1.45,
@@ -11697,12 +12316,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                 children: [
                   Text(
                     "MENOPAUSE JOURNEY",
-                    style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                    style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     "2 Years Since Menopause • Healthy Vitality Focus",
-                    style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.secondaryText),
+                    style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.secondaryText),
                   ),
                 ],
               ),
@@ -11731,7 +12350,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   ),
                   child: Text(
                     "Today's Check-In",
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.poppins(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -11751,7 +12370,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   ),
                   child: Text(
                     "Ask Sia",
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.poppins(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
                     ),
@@ -11777,7 +12396,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             children: [
               Text(
                 "MY WELLBEING",
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                   color: BlushyColors.secondaryText,
@@ -11787,7 +12406,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               const SizedBox(height: 6),
               Text(
                 "Long-Term Wellness Overview",
-                style: GoogleFonts.cormorantGaramond(
+                style: GoogleFonts.poppins(
                   fontSize: 22,
                   fontWeight: FontWeight.w500,
                   color: BlushyColors.text,
@@ -11815,12 +12434,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     children: [
                       Text(
                         "Wellness Score: 94%",
-                        style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                        style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: BlushyColors.text),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         "Calculated from activity & lifestyle consistency",
-                        style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.secondaryText),
+                        style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.secondaryText),
                       ),
                     ],
                   ),
@@ -11855,7 +12474,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                 ),
                 child: Text(
                   "\"You've slept well this week. Energy has improved since increasing your walks. Strength training has been consistent this month, which directly supports your bone mineral densities.\"",
-                  style: GoogleFonts.inter(fontSize: 12, fontStyle: FontStyle.italic, color: BlushyColors.secondaryText),
+                  style: GoogleFonts.poppins(fontSize: 12, fontStyle: FontStyle.italic, color: BlushyColors.secondaryText),
                 ),
               ),
               const SizedBox(height: 24),
@@ -11880,7 +12499,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       ),
                       child: Text(
                         "Today's Check-In",
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.poppins(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
@@ -11902,7 +12521,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       ),
                       child: Text(
                         "View Health History",
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.poppins(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
                         ),
@@ -11921,11 +12540,11 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
   // --- SECTION 3: TODAY'S CHECK-IN ---
   Widget _buildMenoCheckIn() {
     final List<Map<String, dynamic>> moodOptions = [
-      {"icon": "😊", "label": "Balanced"},
-      {"icon": "😐", "label": "Tired"},
-      {"icon": "😣", "label": "Anxious"},
-      {"icon": "🥵", "label": "Warm"},
-      {"icon": "😤", "label": "Irritable"},
+      {"icon": "", "label": "Balanced"},
+      {"icon": "", "label": "Tired"},
+      {"icon": "", "label": "Anxious"},
+      {"icon": "", "label": "Warm"},
+      {"icon": "", "label": "Irritable"},
     ];
 
     final List<String> flashOptions = ["None", "Mild", "Intense"];
@@ -11943,7 +12562,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "TODAY'S CHECK-IN",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -11965,7 +12584,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               // Mood Selector
               Text(
                 "MOOD",
-                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
+                style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
               ),
               const SizedBox(height: 12),
               Row(
@@ -12007,7 +12626,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                         const SizedBox(height: 6),
                         Text(
                           opt['label'],
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.poppins(
                             fontSize: 10,
                             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                             color: isSelected ? BlushyColors.primary : BlushyColors.secondaryText,
@@ -12065,7 +12684,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               // Optional Blood Pressure
               Text(
                 "BLOOD PRESSURE (OPTIONAL)",
-                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
+                style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
               ),
               const SizedBox(height: 12),
               OutlinedButton.icon(
@@ -12098,7 +12717,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               // Notes & Reflections
               Text(
                 "NOTES & REFLECTIONS",
-                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
+                style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
               ),
               const SizedBox(height: 12),
               Row(
@@ -12181,7 +12800,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "SIA INSIGHTS",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -12211,7 +12830,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       Expanded(
                         child: Text(
                           item['insight']!,
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.poppins(
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
                             color: BlushyColors.text,
@@ -12226,7 +12845,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     children: [
                       TextButton(
                         onPressed: () => _openAskSiaChat(context, "Tell me about: ${item['insight']}"),
-                        child: Text("Ask Sia", style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.primary)),
+                        child: Text("Ask Sia", style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.primary)),
                       ),
                       const SizedBox(width: 12),
                       TextButton(
@@ -12235,7 +12854,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                         },
                         child: Text(
                           "Learn More",
-                          style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                          style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                         ),
                       ),
                     ],
@@ -12289,7 +12908,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             children: [
               Text(
                 "LONG-TERM WELLNESS",
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                   color: BlushyColors.secondaryText,
@@ -12299,7 +12918,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               const SizedBox(height: 6),
               Text(
                 "EMPOWERED POST-MENOPAUSE WELLNESS CARDS",
-                style: GoogleFonts.cormorantGaramond(
+                style: GoogleFonts.poppins(
                   fontSize: 22,
                   fontWeight: FontWeight.w500,
                   color: BlushyColors.text,
@@ -12331,17 +12950,17 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   children: [
                     Text(
                       card['title']!.toUpperCase(),
-                      style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.primary, letterSpacing: 1.0),
+                      style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.primary, letterSpacing: 1.0),
                     ),
                     const SizedBox(height: 12),
                     Text(
                       card['desc']!,
-                      style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                      style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: BlushyColors.text),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       "Why This Matters: Encourages sustainable heart, joint and bone vitalities.",
-                      style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.secondaryText),
+                      style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.secondaryText),
                     ),
                     const Spacer(),
                     Row(
@@ -12351,11 +12970,11 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                           onPressed: () {
                             _showArticleDialog(context, card['title']!, card['detail']!);
                           },
-                          child: Text("Learn More", style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary)),
+                          child: Text("Learn More", style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary)),
                         ),
                         TextButton(
                           onPressed: () => _openAskSiaChat(context, "Tell me about my ${card['title']}"),
-                          child: Text("Ask Sia", style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.primary)),
+                          child: Text("Ask Sia", style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.primary)),
                         ),
                       ],
                     ),
@@ -12386,7 +13005,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "TODAY'S CARE PLAN",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -12418,12 +13037,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                         children: [
                           Text(
                             item['title'] as String,
-                            style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                            style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             item['desc'] as String,
-                            style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.secondaryText, height: 1.45),
+                            style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.secondaryText, height: 1.45),
                           ),
                         ],
                       ),
@@ -12476,7 +13095,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "LEARN",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -12505,7 +13124,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   ),
                   child: Text(
                     topic,
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.poppins(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                       color: isSelected ? Colors.white : BlushyColors.text,
@@ -12534,12 +13153,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   children: [
                     Text(
                       article['title']!,
-                      style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                      style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: BlushyColors.text),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       article['desc']!,
-                      style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.secondaryText, height: 1.4),
+                      style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.secondaryText, height: 1.4),
                     ),
                     const SizedBox(height: 16),
                     Row(
@@ -12550,7 +13169,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                           },
                           child: Text(
                             "Read",
-                            style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                            style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                           ),
                         ),
                         const Spacer(),
@@ -12601,7 +13220,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "COMMUNITY",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -12635,7 +13254,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     ),
                     child: Text(
                       tab,
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.poppins(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
                         color: isSelected ? BlushyColors.text : BlushyColors.secondaryText,
@@ -12666,21 +13285,21 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       children: [
                         Text(
                           post['user']!,
-                          style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                          style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                         ),
                         const SizedBox(width: 6),
-                        Container(width: 4, height: 4, decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.grey)),
+                        Container(width: 4, height: 4, decoration: const BoxDecoration(shape: BoxShape.circle, color: BlushyColors.disabled)),
                         const SizedBox(width: 6),
                         Text(
                           "Support Group thread",
-                          style: GoogleFonts.inter(fontSize: 9, color: BlushyColors.secondaryText),
+                          style: GoogleFonts.poppins(fontSize: 9, color: BlushyColors.secondaryText),
                         ),
                       ],
                     ),
                     const SizedBox(height: 4),
                     Text(
                       post['text']!,
-                      style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.text),
+                      style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.text),
                     ),
                     const Divider(height: 24, color: Color(0xFFF5F0EB)),
                   ],
@@ -12710,7 +13329,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "MY WELLNESS JOURNEY",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -12735,7 +13354,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     flex: 25,
                     child: Text(
                       item['date']!,
-                      style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                      style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                     ),
                   ),
                   Expanded(
@@ -12745,12 +13364,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       children: [
                         Text(
                           item['title']!,
-                          style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                          style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           item['detail']!,
-                          style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.secondaryText),
+                          style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.secondaryText),
                         ),
                         const Divider(height: 24, color: Color(0xFFF5F0EB)),
                       ],
@@ -12786,7 +13405,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
         children: [
           Text(
             "MONTHLY REFLECTION",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -12799,12 +13418,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               padding: const EdgeInsets.symmetric(vertical: 8.0),
               child: Row(
                 children: [
-                  const Icon(Icons.check_circle, color: Colors.green, size: 20),
+                  const Icon(Icons.check_circle, color: BlushyColors.success, size: 20),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Text(
                       item,
-                      style: GoogleFonts.inter(fontSize: 13, color: BlushyColors.text, fontWeight: FontWeight.w500),
+                      style: GoogleFonts.poppins(fontSize: 13, color: BlushyColors.text, fontWeight: FontWeight.w500),
                     ),
                   ),
                 ],
@@ -12814,12 +13433,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           const Divider(height: 36, color: Color(0xFFF5F0EB)),
           Text(
             "SIA'S MONTHLY WELLNESS REFLECTION",
-            style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+            style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.primary),
           ),
           const SizedBox(height: 8),
           Text(
             "\"This month, you completed outstanding strength routines, cardiovascular walk metrics, and HRT compliance tasks. Your post-menopause parameters show positive bone density supports. We celebrate your lifelong health journey.\"",
-            style: GoogleFonts.cormorantGaramond(
+            style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.w600,
               color: BlushyColors.text,
@@ -13034,7 +13653,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               const SizedBox(width: 8),
               Text(
                 "SIA'S DAILY BRIEF",
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                   color: BlushyColors.primary,
@@ -13046,7 +13665,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           const SizedBox(height: 20),
           Text(
             "Good Morning, $name",
-            style: GoogleFonts.cormorantGaramond(
+            style: GoogleFonts.poppins(
               fontSize: 32,
               fontWeight: FontWeight.w600,
               color: BlushyColors.text,
@@ -13056,7 +13675,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           const SizedBox(height: 12),
           Text(
             "You've been sleeping better this week. Let's build on that today.",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 15,
               color: BlushyColors.secondaryText,
               height: 1.45,
@@ -13070,12 +13689,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                 children: [
                   Text(
                     "TODAY'S WELLNESS FOCUS: SLEEP & ENERGY",
-                    style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                    style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     "Establishing positive daily routines • Gentle movement focus",
-                    style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.secondaryText),
+                    style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.secondaryText),
                   ),
                 ],
               ),
@@ -13104,7 +13723,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   ),
                   child: Text(
                     "Today's Check-In",
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.poppins(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -13124,7 +13743,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   ),
                   child: Text(
                     "Ask Sia",
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.poppins(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
                     ),
@@ -13150,7 +13769,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             children: [
               Text(
                 "MY WELLNESS",
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                   color: BlushyColors.secondaryText,
@@ -13160,7 +13779,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               const SizedBox(height: 6),
               Text(
                 "Daily Lifestyle Overview",
-                style: GoogleFonts.cormorantGaramond(
+                style: GoogleFonts.poppins(
                   fontSize: 22,
                   fontWeight: FontWeight.w500,
                   color: BlushyColors.text,
@@ -13188,12 +13807,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     children: [
                       Text(
                         "Wellness Score: 96%",
-                        style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                        style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: BlushyColors.text),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         "Overall consistency across tracking habits",
-                        style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.secondaryText),
+                        style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.secondaryText),
                       ),
                     ],
                   ),
@@ -13227,7 +13846,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                 ),
                 child: Text(
                   "\"You've reached your hydration goal three days in a row. Morning movement has improved your afternoon energy. You've been feeling calmer this week.\"",
-                  style: GoogleFonts.inter(fontSize: 12, fontStyle: FontStyle.italic, color: BlushyColors.secondaryText),
+                  style: GoogleFonts.poppins(fontSize: 12, fontStyle: FontStyle.italic, color: BlushyColors.secondaryText),
                 ),
               ),
               const Divider(height: 36, color: Color(0xFFF5F0EB)),
@@ -13249,7 +13868,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                         const SizedBox(width: 8),
                         Text(
                           "CYCLE OVERVIEW",
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.poppins(
                             fontSize: 9,
                             fontWeight: FontWeight.bold,
                             color: BlushyColors.secondaryText,
@@ -13292,7 +13911,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       ),
                       child: Text(
                         "Today's Check-In",
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.poppins(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
@@ -13314,7 +13933,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       ),
                       child: Text(
                         "View Wellness History",
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.poppins(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
                         ),
@@ -13333,11 +13952,11 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
   // --- SECTION 3: TODAY'S CHECK-IN ---
   Widget _buildWellnessCheckIn() {
     final List<Map<String, dynamic>> moodOptions = [
-      {"icon": "😊", "label": "Balanced"},
-      {"icon": "😐", "label": "Tired"},
-      {"icon": "😣", "label": "Anxious"},
-      {"icon": "😴", "label": "Sleepy"},
-      {"icon": "😤", "label": "Irritable"},
+      {"icon": "", "label": "Balanced"},
+      {"icon": "", "label": "Tired"},
+      {"icon": "", "label": "Anxious"},
+      {"icon": "", "label": "Sleepy"},
+      {"icon": "", "label": "Irritable"},
     ];
 
     final List<String> exerciseOptions = ["Workout", "Walk", "None"];
@@ -13353,7 +13972,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "TODAY'S CHECK-IN",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -13375,7 +13994,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               // Mood Selector
               Text(
                 "MOOD",
-                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
+                style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
               ),
               const SizedBox(height: 12),
               Row(
@@ -13417,7 +14036,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                         const SizedBox(height: 6),
                         Text(
                           opt['label'],
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.poppins(
                             fontSize: 10,
                             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                             color: isSelected ? BlushyColors.primary : BlushyColors.secondaryText,
@@ -13463,7 +14082,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               // Optional Weight
               Text(
                 "WEIGHT (OPTIONAL)",
-                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
+                style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
               ),
               const SizedBox(height: 12),
               OutlinedButton.icon(
@@ -13496,7 +14115,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               // Notes & Reflections
               Text(
                 "NOTES & REFLECTIONS",
-                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
+                style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
               ),
               const SizedBox(height: 12),
               Row(
@@ -13579,7 +14198,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "SIA INSIGHTS",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -13609,7 +14228,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       Expanded(
                         child: Text(
                           item['insight']!,
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.poppins(
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
                             color: BlushyColors.text,
@@ -13624,7 +14243,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     children: [
                       TextButton(
                         onPressed: () => _openAskSiaChat(context, "Tell me about: ${item['insight']}"),
-                        child: Text("Ask Sia", style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.primary)),
+                        child: Text("Ask Sia", style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.primary)),
                       ),
                       const SizedBox(width: 12),
                       TextButton(
@@ -13633,7 +14252,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                         },
                         child: Text(
                           "Learn More",
-                          style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                          style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                         ),
                       ),
                     ],
@@ -13663,7 +14282,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "TODAY'S PLAN",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -13695,12 +14314,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                         children: [
                           Text(
                             item['title'] as String,
-                            style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                            style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             item['desc'] as String,
-                            style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.secondaryText, height: 1.45),
+                            style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.secondaryText, height: 1.45),
                           ),
                         ],
                       ),
@@ -13761,7 +14380,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "DISCOVER",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -13790,7 +14409,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   ),
                   child: Text(
                     topic,
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.poppins(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                       color: isSelected ? Colors.white : BlushyColors.text,
@@ -13819,12 +14438,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   children: [
                     Text(
                       article['title']!,
-                      style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                      style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: BlushyColors.text),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       article['desc']!,
-                      style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.secondaryText, height: 1.4),
+                      style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.secondaryText, height: 1.4),
                     ),
                     const SizedBox(height: 16),
                     Row(
@@ -13835,7 +14454,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                           },
                           child: Text(
                             "Read",
-                            style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                            style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                           ),
                         ),
                         const Spacer(),
@@ -13886,7 +14505,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "COMMUNITY",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -13920,7 +14539,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     ),
                     child: Text(
                       tab,
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.poppins(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
                         color: isSelected ? BlushyColors.text : BlushyColors.secondaryText,
@@ -13951,21 +14570,21 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       children: [
                         Text(
                           post['user']!,
-                          style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                          style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                         ),
                         const SizedBox(width: 6),
-                        Container(width: 4, height: 4, decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.grey)),
+                        Container(width: 4, height: 4, decoration: const BoxDecoration(shape: BoxShape.circle, color: BlushyColors.disabled)),
                         const SizedBox(width: 6),
                         Text(
                           "Support Group thread",
-                          style: GoogleFonts.inter(fontSize: 9, color: BlushyColors.secondaryText),
+                          style: GoogleFonts.poppins(fontSize: 9, color: BlushyColors.secondaryText),
                         ),
                       ],
                     ),
                     const SizedBox(height: 4),
                     Text(
                       post['text']!,
-                      style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.text),
+                      style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.text),
                     ),
                     const Divider(height: 24, color: Color(0xFFF5F0EB)),
                   ],
@@ -14018,7 +14637,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             children: [
               Text(
                 "MY HABITS",
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                   color: BlushyColors.secondaryText,
@@ -14028,7 +14647,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               const SizedBox(height: 6),
               Text(
                 "AI-Generated Habit Insights",
-                style: GoogleFonts.cormorantGaramond(
+                style: GoogleFonts.poppins(
                   fontSize: 22,
                   fontWeight: FontWeight.w500,
                   color: BlushyColors.text,
@@ -14060,17 +14679,17 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   children: [
                     Text(
                       card['title']!.toUpperCase(),
-                      style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.primary, letterSpacing: 1.0),
+                      style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.primary, letterSpacing: 1.0),
                     ),
                     const SizedBox(height: 12),
                     Text(
                       card['desc']!,
-                      style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                      style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       "Why This Matters: Supports overall physical health and emotional vitality.",
-                      style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.secondaryText),
+                      style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.secondaryText),
                     ),
                     const Spacer(),
                     Row(
@@ -14080,7 +14699,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                           onPressed: () {
                             _showArticleDialog(context, card['title']!, card['detail']!);
                           },
-                          child: Text("Learn More", style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary)),
+                          child: Text("Learn More", style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary)),
                         ),
                       ],
                     ),
@@ -14111,7 +14730,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "MY WELLNESS JOURNEY",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -14136,7 +14755,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     flex: 25,
                     child: Text(
                       item['date']!,
-                      style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                      style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                     ),
                   ),
                   Expanded(
@@ -14146,12 +14765,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       children: [
                         Text(
                           item['title']!,
-                          style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                          style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           item['detail']!,
-                          style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.secondaryText),
+                          style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.secondaryText),
                         ),
                         const Divider(height: 24, color: Color(0xFFF5F0EB)),
                       ],
@@ -14187,7 +14806,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
         children: [
           Text(
             "MONTHLY REFLECTION",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: BlushyColors.secondaryText,
@@ -14200,12 +14819,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               padding: const EdgeInsets.symmetric(vertical: 8.0),
               child: Row(
                 children: [
-                  const Icon(Icons.check_circle, color: Colors.green, size: 20),
+                  const Icon(Icons.check_circle, color: BlushyColors.success, size: 20),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Text(
                       item,
-                      style: GoogleFonts.inter(fontSize: 13, color: BlushyColors.text, fontWeight: FontWeight.w500),
+                      style: GoogleFonts.poppins(fontSize: 13, color: BlushyColors.text, fontWeight: FontWeight.w500),
                     ),
                   ),
                 ],
@@ -14215,12 +14834,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           const Divider(height: 36, color: Color(0xFFF5F0EB)),
           Text(
             "SIA'S MONTHLY WELLNESS COACH REFLECTION",
-            style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+            style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.primary),
           ),
           const SizedBox(height: 8),
           Text(
             "\"This month, you successfully tracked sleep segments, daily step walks, and breathing meditational practices with outstanding consistency. We celebrate your sustainable healthy habits journey.\"",
-            style: GoogleFonts.cormorantGaramond(
+            style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.w600,
               color: BlushyColors.text,
@@ -14408,8 +15027,6 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
     );
   }
 
-  Widget _buildBranchSwitcher(BlushyOSState state) => const SizedBox.shrink();
-
   Widget _buildFirstPeriodsOS(PersonalContext pc, BlushyOSState state) {
     if (_showFirstPeriodTransition) {
       return _buildFirstPeriodMilestoneTransition(state);
@@ -14421,7 +15038,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: const Color(0xFFFAF6F0), // Beautiful soft ivory paper background
+      backgroundColor: const Color(0xFFFAF6F0), // Soft cream luxury background
       endDrawer: DeveloperContextSimulator(
         onLifeStageChanged: (stage) {
           final currentData = BlushyStorage.read('onboarding_temp_profile.json');
@@ -14442,7 +15059,8 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 36),
               children: [
                 _buildBranchSwitcher(state),
-                // 1. Greeting
+                
+                // 1. Redesigned Hero: Greeting & Tagline
                 Align(
                   alignment: Alignment.topLeft,
                   child: Column(
@@ -14450,95 +15068,518 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     children: [
                       Text(
                         "BLUSHY PREPARATION • EDITION 01",
-                        style: GoogleFonts.inter(
-                          fontSize: 9, 
-                          fontWeight: FontWeight.w900, 
-                          color: BlushyColors.primary.withOpacity(0.8), 
-                          letterSpacing: 2.0
-                        ),
+                        style: BlushyTypography.sectionLabel(),
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        data['greeting'] ?? "Welcome back, $displayName",
-                        style: GoogleFonts.cormorantGaramond(
-                          fontSize: 42, 
-                          fontWeight: FontWeight.w300, 
-                          color: BlushyColors.text, 
-                          height: 1.1
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        hasStarted 
-                            ? "Let's check in with your thoughts today."
-                            : "Your safe space to learn, share, and grow.",
-                        style: GoogleFonts.inter(
-                          fontSize: 13, 
-                          color: BlushyColors.secondaryText, 
-                          letterSpacing: 0.2
-                        ),
+                        "Good afternoon, $displayName",
+                        style: BlushyTypography.displayXL(color: BlushyColors.text),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 48),
+                const SizedBox(height: 36),
 
                 if (!hasStarted) ...[
-                  // Branch A: Not Started
-                  _buildSiaLetterSection(data),
+                  // --- BRANCH A REDESIGNED STORY FLOW ---
+
+                  // Section 1: Sia's Visually Rewritten Letter
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.6),
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.favorite_rounded, color: BlushyColors.primary, size: 14),
+                            const SizedBox(width: 8),
+                            Text(
+                              "LATEST NOTE",
+                              style: GoogleFonts.poppins(fontSize: 8, fontWeight: FontWeight.w900, color: BlushyColors.primary, letterSpacing: 1.2),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          "Growing up\ncan feel confusing.",
+                          style: GoogleFonts.poppins(
+                            fontSize: 20,
+                            fontStyle: FontStyle.italic,
+                            color: BlushyColors.text,
+                            height: 1.4,
+                            fontWeight: FontWeight.w300,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          "You don't have to\nfigure everything out today.",
+                          style: GoogleFonts.poppins(
+                            fontSize: 20,
+                            fontStyle: FontStyle.italic,
+                            color: BlushyColors.text,
+                            height: 1.4,
+                            fontWeight: FontWeight.w300,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          "I'll always be here.",
+                          style: GoogleFonts.poppins(
+                            fontSize: 20,
+                            fontStyle: FontStyle.italic,
+                            color: BlushyColors.text,
+                            height: 1.4,
+                            fontWeight: FontWeight.w300,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        Align(
+                          alignment: Alignment.bottomLeft,
+                          child: Text(
+                            "Love,\nSia",
+                            style: GoogleFonts.poppins(
+                              fontSize: 16, 
+                              fontWeight: FontWeight.bold, 
+                              fontStyle: FontStyle.italic, 
+                              color: BlushyColors.primary
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+
+                  // Section 2: Today's Tiny Mission (Single CTA)
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: BlushyColors.primary.withOpacity(0.04),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        )
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.spa_outlined, color: BlushyColors.primary, size: 14),
+                                const SizedBox(width: 8),
+                                Text(
+                                  "TODAY'S TINY MISSION",
+                                  style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.w900, color: BlushyColors.primary, letterSpacing: 1.2),
+                                ),
+                              ],
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: BlushyColors.primary.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                "2 min",
+                                style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          "Learn why discharge happens.",
+                          style: GoogleFonts.poppins(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                            color: BlushyColors.text,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          "Understand how your body quietly cleanses and prepares itself for changes.",
+                          style: GoogleFonts.poppins(
+                            fontSize: 13,
+                            color: BlushyColors.secondaryText,
+                            height: 1.4,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _missionCompleted ? BlushyColors.success : BlushyColors.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              elevation: 0,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _missionCompleted = !_missionCompleted;
+                              });
+                            },
+                            child: Text(
+                              _missionCompleted ? "Mission Completed! " : "Start Learning",
+                              style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 14),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   const SizedBox(height: 48),
 
-                  // 2. Preparing For My First Period
-                  _buildFirstPeriodJourneyChecklist(data),
+                  // Section 3: Today's Discovery (Curiosity Reveal Card)
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF3EAE0), // Warm editorial paper bag surface
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.auto_awesome_outlined, color: BlushyColors.warning, size: 14),
+                            const SizedBox(width: 8),
+                            Text(
+                              "TODAY'S DISCOVERY",
+                              style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.w900, color: BlushyColors.warning, letterSpacing: 1.2),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          "Did you know?",
+                          style: GoogleFonts.poppins(
+                            fontSize: 24, 
+                            fontWeight: FontWeight.bold, 
+                            color: BlushyColors.text,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          "Your body is already preparing for your first period long before it arrives.",
+                          style: GoogleFonts.poppins(
+                            fontSize: 16, 
+                            fontStyle: FontStyle.italic,
+                            color: BlushyColors.text,
+                            height: 1.4,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        if (!_isDiscoveryRevealed)
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _isDiscoveryRevealed = true;
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              child: Row(
+                                children: [
+                                  Text(
+                                    "Tap to Reveal",
+                                    style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Icon(Icons.arrow_forward_rounded, size: 16, color: BlushyColors.primary),
+                                ],
+                              ),
+                            ),
+                          )
+                        else
+                          TweenAnimationBuilder<double>(
+                            duration: const Duration(milliseconds: 500),
+                            tween: Tween(begin: 0.0, end: 1.0),
+                            builder: (context, value, child) {
+                              return Opacity(
+                                opacity: value,
+                                child: Padding(
+                                  padding: const EdgeInsets.only(top: 8.0),
+                                  child: Text(
+                                    "Hormones are quietly preparing your body, and white discharge is a completely natural sign of this preparation. It helps keep your reproductive system clean and healthy!",
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 13, 
+                                      color: BlushyColors.secondaryText,
+                                      height: 1.5,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                      ],
+                    ),
+                  ),
                   const SizedBox(height: 48),
 
-                  // 3. Ask Sia
+                  // Section 4: Growing Journey (Milestone Timeline)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.alt_route_outlined, color: BlushyColors.success, size: 14),
+                          const SizedBox(width: 8),
+                          Text(
+                            "MY GROWING JOURNEY",
+                            style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.w900, color: BlushyColors.success, letterSpacing: 1.2),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      
+                      // Milestone 1
+                      _buildMilestoneRow("Learning About My Body", "Completed", true, false, true),
+                      _buildTimelineLine(true),
+                      // Milestone 2
+                      _buildMilestoneRow("Understanding Puberty", "Completed", true, false, true),
+                      _buildTimelineLine(true),
+                      // Milestone 3
+                      _buildMilestoneRow("Preparing For My First Period", "Current Step", false, true, false),
+                      _buildTimelineLine(false),
+                      // Milestone 4
+                      _buildMilestoneRow("My First Period", "Locked", false, false, false),
+                    ],
+                  ),
+                  const SizedBox(height: 48),
+
+                  // Section 5: Ask Sia (Prompt suggestion chips)
                   _buildAskSiaPromptSection(data),
                   const SizedBox(height: 48),
 
-                  // 4. Learn
-                  _buildForYouMagazineSection(data),
+                  // Section 6: Growing Together (Family activities / real-life actions)
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.people_outline_rounded, color: BlushyColors.info, size: 14),
+                            const SizedBox(width: 8),
+                            Text(
+                              "GROWING TOGETHER",
+                              style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.w900, color: BlushyColors.info, letterSpacing: 1.2),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        
+                        // Family Mission
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(Icons.home_outlined, color: BlushyColors.info, size: 24),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "Today's Family Mission",
+                                    style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    "Ask your mum: \"What was your first period like?\"",
+                                    style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.secondaryText),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  OutlinedButton(
+                                    style: OutlinedButton.styleFrom(
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      side: BorderSide(color: _familyMissionCompleted ? BlushyColors.success : BlushyColors.info),
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        _familyMissionCompleted = !_familyMissionCompleted;
+                                      });
+                                    },
+                                    child: Text(
+                                      _familyMissionCompleted ? "Completed " : "Mark Complete",
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 11,
+                                        color: _familyMissionCompleted ? BlushyColors.success : BlushyColors.info,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        
+                        // Prep Mission
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(Icons.backpack_outlined, color: BlushyColors.info, size: 24),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "Preparation Together",
+                                    style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    "Pack one sanitary pad inside your school bag.",
+                                    style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.secondaryText),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  OutlinedButton(
+                                    style: OutlinedButton.styleFrom(
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      side: BorderSide(color: _prepMissionCompleted ? BlushyColors.success : BlushyColors.info),
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        _prepMissionCompleted = !_prepMissionCompleted;
+                                      });
+                                    },
+                                    child: Text(
+                                      _prepMissionCompleted ? "Completed " : "Mark Complete",
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 11,
+                                        color: _prepMissionCompleted ? BlushyColors.success : BlushyColors.info,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
                   const SizedBox(height: 48),
 
-                  // 5. Growing Together
-                  _buildGrowingTogetherSection(data),
+                  // Section 7: Community cards (Shared anonymous experiences)
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.forum_outlined, color: BlushyColors.secondary, size: 14),
+                            const SizedBox(width: 8),
+                            Text(
+                              "SHARED EXPERIENCES",
+                              style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.w900, color: BlushyColors.secondary, letterSpacing: 1.2),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          "Someone your age asked...",
+                          style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          "\"I'm scared my first period will happen at school.\"",
+                          style: GoogleFonts.poppins(fontSize: 16, fontStyle: FontStyle.italic, color: BlushyColors.text, height: 1.4),
+                        ),
+                        const SizedBox(height: 16),
+                        GestureDetector(
+                          onTap: () {
+                            // Link to Sia Screen conversation
+                          },
+                          child: Row(
+                            children: [
+                              Text(
+                                "See how Sia answered",
+                                style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                              ),
+                              const SizedBox(width: 6),
+                              const Icon(Icons.arrow_forward_rounded, size: 14, color: BlushyColors.primary),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            const Icon(Icons.favorite_outline_rounded, size: 14, color: BlushyColors.disabled),
+                            const SizedBox(width: 6),
+                            Text(
+                              "Helpful to 92 girls",
+                              style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.disabled),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
                   const SizedBox(height: 48),
 
-                  // 6. Community & M Studio (Merged)
-                  _buildCommunityAndMStudioMergedSection(data),
+                  // Section 8: "Before You Go..." Redesigned Check-in
+                  _buildBeforeYouGoSection(),
                   const SizedBox(height: 48),
 
-                  // 7. Fun Facts
+                  // Section 9: Polaroid Scrapbook Fun Facts
                   _buildPolaroidScrapbookSection(data),
-                  const SizedBox(height: 60),
+                  const SizedBox(height: 72),
                 ] else ...[
-                  // Branch B: Started
+                  // Branch B: Started (Keeps the same dashboard but using updated Poppins typography)
                   if (pc.lastPeriodStart == null) ...[
-                    // No date logged: onboarding welcome experience
                     _buildFirstPeriodWelcomeOnboardingCard(state),
                     const SizedBox(height: 48),
                     _buildSiaLetterSection(data),
-                    const SizedBox(height: 48),
+                    const SizedBox(height: 56),
                     _buildTalkToSiaSection(data, state),
-                    const SizedBox(height: 48),
+                    const SizedBox(height: 56),
                     _buildPolaroidScrapbookSection(data),
                     const SizedBox(height: 60),
                   ] else ...[
-                    // Date logged: full cycle tracking dashboard
                     _buildFirstPeriodHeroCard(data, pc),
-                    const SizedBox(height: 48),
+                    const SizedBox(height: 56),
+                    _buildTodayCheckInComponent(),
+                    const SizedBox(height: 56),
+                    _buildYourGrowingJourneySection(),
+                    const SizedBox(height: 56),
                     _buildForwardTimeline(pc),
-                    const SizedBox(height: 48),
+                    const SizedBox(height: 56),
                     _buildSiaLetterSection(data),
-                    const SizedBox(height: 48),
+                    const SizedBox(height: 56),
                     _buildYourPatternsSection(pc),
-                    const SizedBox(height: 48),
-                    _buildTalkToSiaSection(data, state),
-                    const SizedBox(height: 48),
+                    const SizedBox(height: 56),
                     _buildForYouMagazineSection(data),
-                    const SizedBox(height: 48),
-                    _buildGrowingTogetherSection(data),
-                    const SizedBox(height: 48),
+                    const SizedBox(height: 56),
+                    _buildTalkToSiaSection(data, state),
+                    const SizedBox(height: 56),
                     _buildPolaroidScrapbookSection(data),
                     const SizedBox(height: 60),
                   ]
@@ -14548,6 +15589,319 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildBeforeYouGoSection() {
+    final int day = DateTime.now().day;
+    final int questionIndex = day % dummyReflectionPrompts.length;
+    final currentPrompt = dummyReflectionPrompts[questionIndex];
+    final String questionText = currentPrompt.question;
+    final List<String> options = currentPrompt.chips;
+    final String replyText = currentPrompt.replyText;
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFAF6F0), // Cream paper background
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: BlushyColors.secondary.withOpacity(0.3), width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.mail_outline_rounded, color: BlushyColors.primary, size: 16),
+              const SizedBox(width: 8),
+              Text(
+                "BEFORE YOU GO...",
+                style: GoogleFonts.poppins(
+                  fontSize: 12, 
+                  fontWeight: FontWeight.w600, 
+                  color: BlushyColors.primary, 
+                  letterSpacing: 1.2
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            "Sia has one little question before you head off.",
+            style: GoogleFonts.poppins(
+              fontSize: 14, 
+              fontWeight: FontWeight.w500,
+              color: BlushyColors.secondaryText,
+              height: 1.5
+            ),
+          ),
+          const SizedBox(height: 24),
+          
+          // Question layout
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: BlushyColors.secondary.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  "Sia",
+                  style: GoogleFonts.poppins(
+                    fontSize: 11, 
+                    fontWeight: FontWeight.bold, 
+                    color: BlushyColors.primary
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  questionText,
+                  style: GoogleFonts.poppins(
+                    fontSize: 16, 
+                    fontWeight: FontWeight.w600, 
+                    color: BlushyColors.text,
+                    height: 1.4
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          
+          if (!_beforeYouGoSubmitted) ...[
+            // Three option chips
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: List.generate(options.length, (index) {
+                final isSelected = _beforeYouGoSelectedIndex == index;
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _beforeYouGoSelectedIndex = index;
+                    });
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: isSelected ? BlushyColors.secondary.withOpacity(0.15) : Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: isSelected ? BlushyColors.primary : BlushyColors.border,
+                        width: 1.5
+                      ),
+                    ),
+                    child: Text(
+                      options[index],
+                      style: GoogleFonts.poppins(
+                        fontSize: 13, 
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                        color: isSelected ? BlushyColors.primary : BlushyColors.text
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            ),
+            const SizedBox(height: 24),
+            
+            // Optional diary section
+            Text(
+              "Want to tell me a little more?",
+              style: GoogleFonts.poppins(
+                fontSize: 13, 
+                fontWeight: FontWeight.w600, 
+                color: BlushyColors.text
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _beforeYouGoController,
+              maxLines: 3,
+              style: GoogleFonts.poppins(fontSize: 13, color: BlushyColors.text),
+              decoration: InputDecoration(
+                hintText: currentPrompt.placeholder,
+                hintStyle: GoogleFonts.poppins(color: BlushyColors.secondaryText.withOpacity(0.6), fontSize: 13),
+                fillColor: Colors.white,
+                filled: true,
+                contentPadding: const EdgeInsets.all(16),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(color: BlushyColors.border, width: 1),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(color: BlushyColors.border, width: 1),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(color: BlushyColors.primary, width: 1.5),
+                ),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.mic_none_rounded, color: BlushyColors.secondaryText),
+                  onPressed: () {
+                    // voice input simulation placeholder
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            
+            // Skip & Submit Actions
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _beforeYouGoSubmitted = true;
+                    });
+                  },
+                  child: Text(
+                    "Skip",
+                    style: GoogleFonts.poppins(color: BlushyColors.secondaryText, fontSize: 13),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: BlushyColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    elevation: 0,
+                  ),
+                  onPressed: _beforeYouGoSelectedIndex == null ? null : () {
+                    setState(() {
+                      _beforeYouGoSubmitted = true;
+                    });
+                  },
+                  child: Text(
+                    "Send",
+                    style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
+          ] else ...[
+            // Warm acknowledgement layout
+            TweenAnimationBuilder<double>(
+              duration: const Duration(milliseconds: 500),
+              tween: Tween(begin: 0.0, end: 1.0),
+              builder: (context, value, child) {
+                return Opacity(
+                  opacity: value,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: BlushyColors.secondary.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(Icons.favorite_rounded, color: BlushyColors.primary, size: 16),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                replyText,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 13, 
+                                  color: BlushyColors.text, 
+                                  fontStyle: FontStyle.italic,
+                                  height: 1.4
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextButton(
+                        onPressed: () {
+                          setState(() {
+                            _beforeYouGoSelectedIndex = null;
+                            _beforeYouGoController.clear();
+                            _beforeYouGoSubmitted = false;
+                          });
+                        },
+                        child: Text(
+                          "Answer again",
+                          style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.primary, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBranchSwitcher(BlushyOSState state) => const SizedBox.shrink();
+
+  Widget _buildMilestoneRow(String title, String subtitle, bool isDone, bool isCurrent, bool hasConnector) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Container(
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: isDone ? BlushyColors.success : (isCurrent ? BlushyColors.primary : BlushyColors.disabled.withOpacity(0.3)),
+          ),
+          child: Icon(
+            isDone ? Icons.check : (isCurrent ? Icons.play_arrow : Icons.lock_outline),
+            size: 14,
+            color: Colors.white,
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: isCurrent ? FontWeight.bold : FontWeight.w500,
+                  color: isCurrent ? BlushyColors.text : BlushyColors.secondaryText,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: GoogleFonts.poppins(
+                  fontSize: 11,
+                  color: isCurrent ? BlushyColors.primary : BlushyColors.disabled,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTimelineLine(bool isActive) {
+    return Container(
+      margin: const EdgeInsets.only(left: 13, top: 4, bottom: 4),
+      width: 2,
+      height: 24,
+      color: isActive ? BlushyColors.success : BlushyColors.disabled.withOpacity(0.2),
     );
   }
 
@@ -14621,11 +15975,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             children: [
               Text(
                 "Cycle Day $cycleDay",
-                style: GoogleFonts.cormorantGaramond(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: BlushyColors.text,
-                ),
+                style: BlushyTypography.displayL(color: BlushyColors.text),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -14635,7 +15985,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                 ),
                 child: Text(
                   "Day $cycleDay/28",
-                  style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                  style: BlushyTypography.chipLabel(color: BlushyColors.primary),
                 ),
               ),
             ],
@@ -14647,24 +15997,14 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               const SizedBox(width: 6),
               Text(
                 phaseName,
-                style: GoogleFonts.inter(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  color: BlushyColors.primary,
-                  letterSpacing: 1.0,
-                ),
+                style: BlushyTypography.caption(color: BlushyColors.primary),
               ),
             ],
           ),
           const SizedBox(height: 12),
           Text(
             "\"$friendlyExplain\"",
-            style: GoogleFonts.cormorantGaramond(
-              fontSize: 20,
-              fontStyle: FontStyle.italic,
-              color: BlushyColors.text,
-              height: 1.45,
-            ),
+            style: BlushyTypography.bodyLarge(color: BlushyColors.text).copyWith(fontStyle: FontStyle.italic),
           ),
           const SizedBox(height: 16),
           Container(
@@ -14680,7 +16020,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                 Expanded(
                   child: Text(
                     "Today's Focus: $todayFocus",
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.poppins(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                       color: BlushyColors.primary,
@@ -14721,7 +16061,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               Expanded(
                 child: Text(
                   confidenceText,
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.poppins(
                     fontSize: 11,
                     color: BlushyColors.secondaryText,
                     fontStyle: FontStyle.italic,
@@ -14743,7 +16083,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           width: 12,
           height: 12,
           decoration: BoxDecoration(
-            color: isActive ? BlushyColors.primary : Colors.grey.withOpacity(0.3),
+            color: isActive ? BlushyColors.primary : BlushyColors.disabled.withOpacity(0.3),
             shape: BoxShape.circle,
             border: isActive ? Border.all(color: Colors.white, width: 2) : null,
             boxShadow: isActive ? [BoxShadow(color: BlushyColors.primary.withOpacity(0.4), blurRadius: 6)] : null,
@@ -14752,7 +16092,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
         const SizedBox(height: 6),
         Text(
           name,
-          style: GoogleFonts.inter(
+          style: GoogleFonts.poppins(
             fontSize: 9,
             fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
             color: isActive ? BlushyColors.primary : BlushyColors.secondaryText.withOpacity(0.5),
@@ -14765,7 +16105,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
   Widget _buildProgressArrow() {
     return Padding(
       padding: const EdgeInsets.only(bottom: 14.0),
-      child: Icon(Icons.chevron_right_rounded, size: 12, color: Colors.grey.withOpacity(0.3)),
+      child: Icon(Icons.chevron_right_rounded, size: 12, color: BlushyColors.disabled.withOpacity(0.3)),
     );
   }
 
@@ -14780,9 +16120,9 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
     final int cycleDay = (DateTime.now().difference(prevStart).inDays % 28) + 1;
 
     final steps = [
-      {"label": "Last Period", "desc": "Started on $prevStartStr", "icon": Icons.check_circle_rounded, "color": Colors.green},
+      {"label": "Last Period", "desc": "Started on $prevStartStr", "icon": Icons.check_circle_rounded, "color": BlushyColors.success},
       {"label": "Today", "desc": "Cycle Day $cycleDay of your rhythm", "icon": Icons.adjust_rounded, "color": BlushyColors.primary},
-      {"label": "Estimated Ovulation Window", "desc": "Approx. Day 13-15 of cycle", "icon": Icons.help_outline_rounded, "color": Colors.orange},
+      {"label": "Estimated Ovulation Window", "desc": "Approx. Day 13-15 of cycle", "icon": Icons.help_outline_rounded, "color": BlushyColors.warning},
       {"label": "Estimated Next Period", "desc": "Approx. around $expectedNextStr", "icon": Icons.calendar_month_rounded, "color": BlushyColors.primary.withOpacity(0.5)},
     ];
 
@@ -14795,14 +16135,14 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             const SizedBox(width: 8),
             Text(
               "LOOK AHEAD TIMELINE",
-              style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w900, color: BlushyColors.primary, letterSpacing: 1.2),
+              style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.w900, color: BlushyColors.primary, letterSpacing: 1.2),
             ),
           ],
         ),
         const SizedBox(height: 12),
         Text(
           "Your Upcoming Cycle Path",
-          style: GoogleFonts.cormorantGaramond(
+          style: GoogleFonts.poppins(
             fontSize: 26,
             fontWeight: FontWeight.bold,
             color: BlushyColors.text,
@@ -14811,7 +16151,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
         const SizedBox(height: 6),
         Text(
           "We're still learning your unique cycle. Predictions will become more personalised as you continue tracking. Never present predictions as certainty.",
-          style: GoogleFonts.inter(
+          style: GoogleFonts.poppins(
             fontSize: 13,
             color: BlushyColors.secondaryText,
             height: 1.45,
@@ -14858,12 +16198,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                         children: [
                           Text(
                             step['label'] as String,
-                            style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                            style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
                           ),
                           const SizedBox(height: 3),
                           Text(
                             step['desc'] as String,
-                            style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.secondaryText),
+                            style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.secondaryText),
                           ),
                         ],
                       ),
@@ -14890,9 +16230,9 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
       final int cycleDay = (DateTime.now().difference(prevStart).inDays % 28) + 1;
 
       final steps = [
-        {"label": "Previous Period", "desc": "Started on $prevStartStr", "icon": Icons.check_circle_rounded, "color": Colors.green},
+        {"label": "Previous Period", "desc": "Started on $prevStartStr", "icon": Icons.check_circle_rounded, "color": BlushyColors.success},
         {"label": "Today", "desc": "Cycle Day $cycleDay of your rhythm", "icon": Icons.lens, "color": BlushyColors.primary},
-        {"label": "Estimated Ovulation Window", "desc": "We're still learning your cycle. These dates are gentle estimates and will become more personalised over time.", "icon": Icons.help_outline_rounded, "color": Colors.orange},
+        {"label": "Estimated Ovulation Window", "desc": "We're still learning your cycle. These dates are gentle estimates and will become more personalised over time.", "icon": Icons.help_outline_rounded, "color": BlushyColors.warning},
         {"label": "Expected Next Period", "desc": "Approx. around $expectedNextStr", "icon": Icons.calendar_today_rounded, "color": BlushyColors.primary.withOpacity(0.5)},
       ];
 
@@ -14900,8 +16240,8 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "🌸 My Cycle Timeline",
-            style: GoogleFonts.cormorantGaramond(
+            " My Cycle Timeline",
+            style: GoogleFonts.poppins(
               fontSize: 26,
               fontWeight: FontWeight.bold,
               color: BlushyColors.text,
@@ -14910,7 +16250,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           const SizedBox(height: 6),
           Text(
             "Here is a forward-looking view of your cycle rhythm.",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 13,
               color: BlushyColors.secondaryText,
             ),
@@ -14931,7 +16271,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       children: [
                         Text(
                           step['label'] as String,
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.poppins(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
                             color: BlushyColors.text,
@@ -14940,7 +16280,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                         const SizedBox(height: 4),
                         Text(
                           step['desc'] as String,
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.poppins(
                             fontSize: 12,
                             color: BlushyColors.secondaryText,
                             height: 1.4,
@@ -14961,7 +16301,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
 
     final List<dynamic> items = data['journeySteps'] ?? [];
     final bool hasStarted = data['hasStarted'] == true;
-    final String title = hasStarted ? "🌸 My First Cycle Timeline" : "🌱 Learning About My Body";
+    final String title = hasStarted ? " My First Cycle Timeline" : " Learning About My Body";
     final String subtitle = hasStarted 
         ? "Here is a simplified view of your body's natural rhythm." 
         : "You're building confidence one step at a time.";
@@ -14971,7 +16311,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
       children: [
         Text(
           title,
-          style: GoogleFonts.cormorantGaramond(
+          style: GoogleFonts.poppins(
             fontSize: 26,
             fontWeight: FontWeight.bold,
             color: BlushyColors.text,
@@ -14980,7 +16320,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
         const SizedBox(height: 6),
         Text(
           subtitle,
-          style: GoogleFonts.inter(
+          style: GoogleFonts.poppins(
             fontSize: 13,
             color: BlushyColors.secondaryText,
           ),
@@ -15000,7 +16340,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       ? Icons.check_circle_rounded 
                       : (isLocked ? Icons.lock_outline_rounded : Icons.radio_button_unchecked_rounded),
                   color: isDone 
-                      ? Colors.green 
+                      ? BlushyColors.success 
                       : (isLocked ? BlushyColors.secondaryText.withOpacity(0.3) : BlushyColors.primary),
                   size: 20,
                 ),
@@ -15013,7 +16353,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       children: [
                         Text(
                           item['title'] ?? "",
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.poppins(
                             fontSize: 14,
                             fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
                             color: isCurrent ? BlushyColors.primary : BlushyColors.text,
@@ -15025,7 +16365,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                             padding: const EdgeInsets.only(top: 4.0),
                             child: Text(
                               "Locked until you start your period",
-                              style: GoogleFonts.inter(
+                              style: GoogleFonts.poppins(
                                 fontSize: 10,
                                 color: BlushyColors.secondaryText.withOpacity(0.6),
                                 fontStyle: FontStyle.italic,
@@ -15037,7 +16377,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                             padding: const EdgeInsets.only(top: 4.0),
                             child: Text(
                               "Your body is recovering and returning to its baseline state.",
-                              style: GoogleFonts.inter(
+                              style: GoogleFonts.poppins(
                                 fontSize: 11,
                                 color: BlushyColors.secondaryText,
                               ),
@@ -15092,14 +16432,14 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             const SizedBox(width: 8),
             Text(
               "SIA'S PERSONAL NOTE",
-              style: GoogleFonts.inter(fontSize: 8, fontWeight: FontWeight.w900, color: BlushyColors.primary, letterSpacing: 1.2),
+              style: GoogleFonts.poppins(fontSize: 8, fontWeight: FontWeight.w900, color: BlushyColors.primary, letterSpacing: 1.2),
             ),
           ],
         ),
         const SizedBox(height: 16),
         Text(
           "\"${data['siaNote'] ?? 'I know growing up can feel confusing sometimes. You don\'t have to figure everything out alone.'}\"",
-          style: GoogleFonts.cormorantGaramond(
+          style: GoogleFonts.poppins(
             fontSize: 22,
             fontStyle: FontStyle.italic,
             color: BlushyColors.text,
@@ -15112,7 +16452,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           alignment: Alignment.bottomRight,
           child: Text(
             "— Love, Sia",
-            style: GoogleFonts.cormorantGaramond(
+            style: GoogleFonts.poppins(
               fontSize: 16, 
               fontWeight: FontWeight.bold, 
               fontStyle: FontStyle.italic, 
@@ -15138,12 +16478,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             children: [
               Text(
                 "BECAUSE YOU SHARED",
-                style: GoogleFonts.inter(fontSize: 8, fontWeight: FontWeight.w900, color: Colors.purple, letterSpacing: 1.2),
+                style: GoogleFonts.poppins(fontSize: 8, fontWeight: FontWeight.w900, color: BlushyColors.secondary, letterSpacing: 1.2),
               ),
               const SizedBox(height: 8),
               Text(
                 "PE class felt a bit awkward last week",
-                style: GoogleFonts.cormorantGaramond(
+                style: GoogleFonts.poppins(
                   fontSize: 18, 
                   fontWeight: FontWeight.w600, 
                   color: BlushyColors.text, 
@@ -15168,12 +16508,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               children: [
                 Text(
                   "SIA'S RECOMMENDATION",
-                  style: GoogleFonts.inter(fontSize: 8, fontWeight: FontWeight.w900, color: BlushyColors.secondaryText, letterSpacing: 1.2),
+                  style: GoogleFonts.poppins(fontSize: 8, fontWeight: FontWeight.w900, color: BlushyColors.secondaryText, letterSpacing: 1.2),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   "How to manage cramps and sports at school",
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.poppins(
                     fontSize: 12, 
                     fontWeight: FontWeight.bold, 
                     color: BlushyColors.primary, 
@@ -15205,8 +16545,8 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              "TODAY'S DISCOVERY",
-              style: GoogleFonts.inter(fontSize: 8, fontWeight: FontWeight.w900, color: Colors.orange, letterSpacing: 1.2),
+              "FOR YOU",
+              style: GoogleFonts.poppins(fontSize: 8, fontWeight: FontWeight.w900, color: BlushyColors.warning, letterSpacing: 1.2),
             ),
             Row(
               children: [
@@ -15215,12 +16555,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     margin: const EdgeInsets.only(right: 8),
                     decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.08),
+                      color: BlushyColors.success.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       usefulness,
-                      style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.green),
+                      style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.success),
                     ),
                   ),
                 ],
@@ -15232,7 +16572,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   ),
                   child: Text(
                     "$type • $readTime",
-                    style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                    style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                   ),
                 ),
               ],
@@ -15242,7 +16582,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
         const SizedBox(height: 12),
         Text(
           title,
-          style: GoogleFonts.cormorantGaramond(
+          style: GoogleFonts.poppins(
             fontSize: 28, 
             fontWeight: FontWeight.bold, 
             color: BlushyColors.text, 
@@ -15252,7 +16592,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
         const SizedBox(height: 8),
         Text(
           discovery['desc'] ?? "",
-          style: GoogleFonts.inter(
+          style: GoogleFonts.poppins(
             fontSize: 13, 
             color: BlushyColors.secondaryText, 
             height: 1.5
@@ -15276,7 +16616,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               const SizedBox(width: 12),
               Text(
                 "${(progress * 100).toInt()}% read",
-                style: GoogleFonts.inter(fontSize: 10, color: BlushyColors.secondaryText),
+                style: GoogleFonts.poppins(fontSize: 10, color: BlushyColors.secondaryText),
               ),
             ],
           ),
@@ -15292,7 +16632,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                 children: [
                   Text(
                     "Read Guide",
-                    style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                    style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                   ),
                   const SizedBox(width: 4),
                   const Icon(Icons.arrow_forward_rounded, size: 14, color: BlushyColors.primary),
@@ -15332,12 +16672,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
       children: [
         Text(
           "ASK SIA",
-          style: GoogleFonts.inter(fontSize: 8, fontWeight: FontWeight.w900, color: BlushyColors.primary, letterSpacing: 1.2),
+          style: GoogleFonts.poppins(fontSize: 8, fontWeight: FontWeight.w900, color: BlushyColors.primary, letterSpacing: 1.2),
         ),
         const SizedBox(height: 12),
         Text(
           "What are you wondering today?",
-          style: GoogleFonts.cormorantGaramond(
+          style: GoogleFonts.poppins(
             fontSize: 26, 
             fontWeight: FontWeight.bold, 
             color: BlushyColors.text,
@@ -15360,7 +16700,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               ),
               child: Text(
                 s as String,
-                style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.text, fontWeight: FontWeight.w500),
+                style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.text, fontWeight: FontWeight.w500),
               ),
             ),
           )).toList(),
@@ -15379,7 +16719,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
       children: [
         Text(
           "DAILY FUN FACT",
-          style: GoogleFonts.inter(fontSize: 8, fontWeight: FontWeight.w900, color: Colors.teal, letterSpacing: 1.2),
+          style: GoogleFonts.poppins(fontSize: 8, fontWeight: FontWeight.w900, color: BlushyColors.info, letterSpacing: 1.2),
         ),
         const SizedBox(height: 16),
         Container(
@@ -15390,7 +16730,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             children: [
               Text(
                 "Did you know?",
-                style: GoogleFonts.cormorantGaramond(
+                style: GoogleFonts.poppins(
                   fontSize: 26, 
                   fontWeight: FontWeight.bold, 
                   color: BlushyColors.text,
@@ -15399,7 +16739,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               const SizedBox(height: 12),
               Text(
                 data['funFact'] ?? "The uterus is about the size of a small pear.",
-                style: GoogleFonts.cormorantGaramond(
+                style: GoogleFonts.poppins(
                   fontSize: 22, 
                   fontStyle: FontStyle.italic,
                   color: BlushyColors.text,
@@ -15409,7 +16749,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               const SizedBox(height: 12),
               Text(
                 "As you grow up, it gently changes and prepares to support your body's unique health journey.",
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   fontSize: 12, 
                   color: BlushyColors.secondaryText,
                   height: 1.5,
@@ -15434,12 +16774,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
       children: [
         Text(
           "COMMUNITY PREVIEW",
-          style: GoogleFonts.inter(fontSize: 8, fontWeight: FontWeight.w900, color: BlushyColors.primary, letterSpacing: 1.2),
+          style: GoogleFonts.poppins(fontSize: 8, fontWeight: FontWeight.w900, color: BlushyColors.primary, letterSpacing: 1.2),
         ),
         const SizedBox(height: 12),
         Text(
           "First Period Circle",
-          style: GoogleFonts.cormorantGaramond(
+          style: GoogleFonts.poppins(
             fontSize: 26, 
             fontWeight: FontWeight.bold, 
             color: BlushyColors.text,
@@ -15448,7 +16788,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
         const SizedBox(height: 4),
         Text(
           stats,
-          style: GoogleFonts.inter(
+          style: GoogleFonts.poppins(
             fontSize: 12, 
             color: BlushyColors.primary,
             fontWeight: FontWeight.bold,
@@ -15470,7 +16810,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               Expanded(
                 child: Text(
                   post['text'] ?? "",
-                  style: GoogleFonts.inter(fontSize: 13, color: BlushyColors.text, fontWeight: FontWeight.w500),
+                  style: GoogleFonts.poppins(fontSize: 13, color: BlushyColors.text, fontWeight: FontWeight.w500),
                 ),
               ),
             ],
@@ -15493,12 +16833,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
         children: [
           Text(
             "GROWING WITH CONFIDENCE",
-            style: GoogleFonts.inter(fontSize: 8, fontWeight: FontWeight.w900, color: BlushyColors.primary, letterSpacing: 1.2),
+            style: GoogleFonts.poppins(fontSize: 8, fontWeight: FontWeight.w900, color: BlushyColors.primary, letterSpacing: 1.2),
           ),
           const SizedBox(height: 12),
           Text(
             "Your Confidence Journey",
-            style: GoogleFonts.cormorantGaramond(
+            style: GoogleFonts.poppins(
               fontSize: 26, 
               fontWeight: FontWeight.bold, 
               color: BlushyColors.text,
@@ -15518,13 +16858,13 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   children: [
                     Icon(
                       isDone ? Icons.check_circle : Icons.radio_button_unchecked,
-                      color: isDone ? Colors.green : BlushyColors.secondaryText.withOpacity(0.4),
+                      color: isDone ? BlushyColors.success : BlushyColors.secondaryText.withOpacity(0.4),
                       size: 20,
                     ),
                     const SizedBox(width: 12),
                     Text(
                       step['title'] as String,
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.poppins(
                         fontSize: 14,
                         color: isDone ? BlushyColors.text : BlushyColors.text.withOpacity(0.6),
                         fontWeight: isDone ? FontWeight.w600 : FontWeight.normal,
@@ -15555,12 +16895,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
       children: [
         Text(
           "EXPLORE MORE",
-          style: GoogleFonts.inter(fontSize: 8, fontWeight: FontWeight.w900, color: BlushyColors.primary, letterSpacing: 1.2),
+          style: GoogleFonts.poppins(fontSize: 8, fontWeight: FontWeight.w900, color: BlushyColors.primary, letterSpacing: 1.2),
         ),
         const SizedBox(height: 12),
         Text(
           "Guides for growing up",
-          style: GoogleFonts.cormorantGaramond(
+          style: GoogleFonts.poppins(
             fontSize: 26, 
             fontWeight: FontWeight.bold, 
             color: BlushyColors.text,
@@ -15589,7 +16929,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                 child: Text(
                   topics[index],
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.poppins(
                     fontSize: 12, 
                     fontWeight: FontWeight.w600, 
                     color: BlushyColors.text,
@@ -15608,17 +16948,17 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
     final bool hasStarted = data['hasStarted'] == true;
     final feelings = hasStarted 
         ? [
-            {'label': 'Happy', 'color': Colors.orange},
-            {'label': 'Confident', 'color': Colors.green},
-            {'label': 'Nervous', 'color': Colors.purple},
-            {'label': 'Tired', 'color': Colors.blue},
-            {'label': 'Crampy', 'color': Colors.red},
+            {'label': 'Happy', 'color': BlushyColors.warning},
+            {'label': 'Confident', 'color': BlushyColors.success},
+            {'label': 'Nervous', 'color': BlushyColors.secondary},
+            {'label': 'Tired', 'color': BlushyColors.info},
+            {'label': 'Crampy', 'color': BlushyColors.danger},
           ]
         : [
-            {'label': 'Happy', 'color': Colors.orange},
-            {'label': 'Curious', 'color': Colors.blue},
-            {'label': 'Nervous', 'color': Colors.purple},
-            {'label': 'Excited', 'color': Colors.teal},
+            {'label': 'Happy', 'color': BlushyColors.warning},
+            {'label': 'Curious', 'color': BlushyColors.info},
+            {'label': 'Nervous', 'color': BlushyColors.secondary},
+            {'label': 'Excited', 'color': BlushyColors.info},
           ];
 
     return Column(
@@ -15626,12 +16966,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
       children: [
         Text(
           "M STUDIO",
-          style: GoogleFonts.inter(fontSize: 8, fontWeight: FontWeight.w900, color: BlushyColors.secondaryText, letterSpacing: 1.2),
+          style: GoogleFonts.poppins(fontSize: 8, fontWeight: FontWeight.w900, color: BlushyColors.secondaryText, letterSpacing: 1.2),
         ),
         const SizedBox(height: 12),
         Text(
           "How are you feeling today?",
-          style: GoogleFonts.cormorantGaramond(fontSize: 26, fontWeight: FontWeight.bold, color: BlushyColors.text),
+          style: GoogleFonts.poppins(fontSize: 26, fontWeight: FontWeight.bold, color: BlushyColors.text),
         ),
         const SizedBox(height: 16),
         Wrap(
@@ -15656,7 +16996,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                 ),
                 child: Text(
                   f['label'] as String,
-                  style: GoogleFonts.inter(fontSize: 13, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, color: BlushyColors.text),
+                  style: GoogleFonts.poppins(fontSize: 13, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, color: BlushyColors.text),
                 ),
               ),
             );
@@ -15666,7 +17006,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           const SizedBox(height: 18),
           Text(
             "Any symptoms today?",
-            style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
+            style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
           ),
           const SizedBox(height: 8),
           Wrap(
@@ -15689,7 +17029,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   ),
                   child: Text(
                     symptom,
-                    style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.text),
+                    style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.text),
                   ),
                 ),
               );
@@ -15698,7 +17038,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           const SizedBox(height: 18),
           Text(
             "Energy level",
-            style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
+            style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
           ),
           const SizedBox(height: 8),
           Wrap(
@@ -15721,7 +17061,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   ),
                   child: Text(
                     energy,
-                    style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.text),
+                    style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.text),
                   ),
                 ),
               );
@@ -15731,10 +17071,10 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
         const SizedBox(height: 18),
         // One sentence record input
         TextField(
-          style: GoogleFonts.inter(fontSize: 13, color: BlushyColors.text),
+          style: GoogleFonts.poppins(fontSize: 13, color: BlushyColors.text),
           decoration: InputDecoration(
             hintText: "Write one sentence about today...",
-            hintStyle: GoogleFonts.inter(color: BlushyColors.secondaryText.withOpacity(0.5), fontSize: 13),
+            hintStyle: GoogleFonts.poppins(color: BlushyColors.secondaryText.withOpacity(0.5), fontSize: 13),
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             filled: true,
             fillColor: Colors.white,
@@ -15754,7 +17094,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                 });
               },
               icon: Icon(Icons.gesture_rounded, size: 16, color: _isDrawingMode ? BlushyColors.primary : BlushyColors.secondaryText),
-              label: Text("Sketch", style: GoogleFonts.inter(fontSize: 11, color: _isDrawingMode ? BlushyColors.primary : BlushyColors.secondaryText)),
+              label: Text("Sketch", style: GoogleFonts.poppins(fontSize: 11, color: _isDrawingMode ? BlushyColors.primary : BlushyColors.secondaryText)),
               style: OutlinedButton.styleFrom(
                 side: BorderSide(color: _isDrawingMode ? BlushyColors.primary : BlushyColors.border),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -15768,7 +17108,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                 );
               },
               icon: const Icon(Icons.mic_none_outlined, size: 16, color: BlushyColors.secondaryText),
-              label: Text("Voice", style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.secondaryText)),
+              label: Text("Voice", style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.secondaryText)),
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: BlushyColors.border),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -15804,7 +17144,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             ),
             child: Text(
               "Write More",
-              style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+              style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: BlushyColors.primary),
             ),
           ),
         ),
@@ -15929,7 +17269,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               const SizedBox(width: 8),
               Text(
                 heading.toUpperCase(),
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   fontSize: 10,
                   fontWeight: FontWeight.w800,
                   color: BlushyColors.primary,
@@ -15941,7 +17281,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           const SizedBox(height: 16),
           Text(
             headline,
-            style: GoogleFonts.cormorantGaramond(
+            style: GoogleFonts.poppins(
               fontSize: 28,
               fontWeight: FontWeight.bold,
               color: BlushyColors.text,
@@ -15950,7 +17290,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           const SizedBox(height: 8),
           Text(
             supporting,
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 14,
               color: BlushyColors.secondaryText,
               height: 1.45,
@@ -15972,7 +17312,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             ),
             child: Text(
               actionLabel,
-              style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold),
+              style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold),
             ),
           ),
         ],
@@ -16012,7 +17352,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               children: [
                 Text(
                   headerLabel,
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.poppins(
                     fontSize: 10,
                     fontWeight: FontWeight.w800,
                     color: BlushyColors.secondaryText,
@@ -16022,7 +17362,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                 const SizedBox(height: 8),
                 Text(
                   insightText,
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.poppins(
                     fontSize: 14,
                     color: BlushyColors.text,
                     height: 1.5,
@@ -16071,7 +17411,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               children: [
                 Text(
                   "WELLNESS FOCUS • $focusType",
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.poppins(
                     fontSize: 10,
                     fontWeight: FontWeight.w800,
                     color: BlushyColors.primary,
@@ -16080,7 +17420,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                 ),
                 Text(
                   readTime,
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.poppins(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
                     color: BlushyColors.secondaryText,
@@ -16091,7 +17431,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             const SizedBox(height: 16),
             Text(
               focusTitle,
-              style: GoogleFonts.cormorantGaramond(
+              style: GoogleFonts.poppins(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
                 color: BlushyColors.text,
@@ -16101,7 +17441,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             const SizedBox(height: 8),
             Text(
               focusDesc,
-              style: GoogleFonts.inter(
+              style: GoogleFonts.poppins(
                 fontSize: 13,
                 color: BlushyColors.secondaryText,
                 height: 1.45,
@@ -16121,7 +17461,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     children: [
                       Text(
                         "Explore guidance",
-                        style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700),
+                        style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(width: 4),
                       const Icon(Icons.arrow_forward, size: 14),
@@ -16151,7 +17491,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
         children: [
           Text(
             "TODAY'S ACTION",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w800,
               color: BlushyColors.secondaryText,
@@ -16161,7 +17501,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           const SizedBox(height: 12),
           Text(
             "Track symptoms to refine predictions",
-            style: GoogleFonts.cormorantGaramond(
+            style: GoogleFonts.poppins(
               fontSize: 22,
               fontWeight: FontWeight.bold,
               color: BlushyColors.text,
@@ -16170,7 +17510,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           const SizedBox(height: 6),
           Text(
             "Adding sleep, mood, or energy signals helps Sia predict cycle phase variations safely.",
-            style: GoogleFonts.inter(fontSize: 13, color: BlushyColors.secondaryText, height: 1.45),
+            style: GoogleFonts.poppins(fontSize: 13, color: BlushyColors.secondaryText, height: 1.45),
           ),
         ],
       ),
@@ -16187,7 +17527,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
       final int cycleDay = cData['cycleDay'] ?? 14;
       
       int activeIndex = 0;
-      String phaseTitle = "Ovulation";
+      String phaseTitle = "Transition";
       String explanation = "";
       String bodyChanges = "";
       String emotionalChanges = "";
@@ -16215,12 +17555,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
         energyExpect = "Physical energy naturally climbs to its baseline.";
         wellnessSug = "Great time to build fitness habits or start complex tasks.";
         trendMessage = "Your estrogen is rising smoothly, boosting focus.";
-        predictionMsg = "Ovulation expected in ${13 - cycleDay} days.";
+        predictionMsg = "Follicular peak expected in ${13 - cycleDay} days.";
       } else if (cycleDay <= 17) {
         activeIndex = 2;
-        phaseTitle = "Ovulation";
-        explanation = "An egg is released, prompting peak estrogen and testosterone levels. Your strength is at its highest.";
-        bodyChanges = "Clear, stretchy discharge is common. Glowing skin and high stamina.";
+        phaseTitle = "Transition";
+        explanation = "Estrogen and testosterone levels peak. Your stamina is naturally at its highest.";
+        bodyChanges = "High physical stamina and energy level baseline.";
         emotionalChanges = "Some people notice higher confidence, sociability, and brighter mood.";
         energyExpect = "Physical stamina and energy are at their peak.";
         wellnessSug = "Stay active, listen to your body, try strength workouts.";
@@ -16239,10 +17579,10 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
       }
 
       final phases = [
-        {"name": "Period", "icon": "🩸"},
-        {"name": "Follicular", "icon": "🌱"},
-        {"name": "Ovulation", "icon": "🌼"},
-        {"name": "Luteal", "icon": "🌙"},
+        {"name": "Period", "icon": ""},
+        {"name": "Follicular", "icon": ""},
+        {"name": "Transition", "icon": ""},
+        {"name": "Luteal", "icon": ""},
       ];
 
       final String nextPeriodDaysText = cycleDay <= 5 ? "Active" : "${29 - cycleDay} days away";
@@ -16275,7 +17615,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   children: [
                     Text(
                       "Day $cycleDay",
-                      style: GoogleFonts.cormorantGaramond(
+                      style: GoogleFonts.poppins(
                         fontSize: 36,
                         fontWeight: FontWeight.bold,
                         color: BlushyColors.text,
@@ -16285,7 +17625,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     const SizedBox(height: 4),
                     Text(
                       "$phaseIcon $phaseTitle Phase",
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.poppins(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                         color: BlushyColors.primary,
@@ -16298,16 +17638,16 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   children: [
                     Text(
                       "NEXT PERIOD",
-                      style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w800, color: BlushyColors.secondaryText, letterSpacing: 0.8),
+                      style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.w800, color: BlushyColors.secondaryText, letterSpacing: 0.8),
                     ),
                     Text(
                       nextPeriodDaysText,
-                      style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                      style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       "CYCLE CONFIDENCE: 98%",
-                      style: GoogleFonts.inter(fontSize: 8, fontWeight: FontWeight.w800, color: BlushyColors.primary, letterSpacing: 0.5),
+                      style: GoogleFonts.poppins(fontSize: 8, fontWeight: FontWeight.w800, color: BlushyColors.primary, letterSpacing: 0.5),
                     ),
                   ],
                 ),
@@ -16376,7 +17716,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       const SizedBox(height: 8),
                       Text(
                         item['name']!,
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.poppins(
                           fontSize: 11,
                           fontWeight: isActive ? FontWeight.w800 : FontWeight.w500,
                           color: isActive ? BlushyColors.primary : BlushyColors.secondaryText,
@@ -16402,7 +17742,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                 children: [
                   Text(
                     "Phase Overview",
-                    style: GoogleFonts.cormorantGaramond(
+                    style: GoogleFonts.poppins(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                       color: BlushyColors.text,
@@ -16411,7 +17751,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   const SizedBox(height: 4),
                   Text(
                     explanation,
-                    style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.secondaryText, height: 1.4),
+                    style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.secondaryText, height: 1.4),
                   ),
                   const Divider(height: 24, color: BlushyColors.border),
                   _buildDetailRow("Today's Body", bodyChanges),
@@ -16442,12 +17782,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       children: [
                         Text(
                           predictionMsg,
-                          style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                          style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: BlushyColors.text),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           trendMessage,
-                          style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.secondaryText),
+                          style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.secondaryText),
                         ),
                       ],
                     ),
@@ -16460,7 +17800,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             // 5. CYCLE HISTORY PANEL
             Text(
               "CYCLE HISTORY",
-              style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w800, color: BlushyColors.secondaryText, letterSpacing: 0.8),
+              style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.w800, color: BlushyColors.secondaryText, letterSpacing: 0.8),
             ),
             const SizedBox(height: 8),
             Container(
@@ -16522,17 +17862,17 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             children: [
               Text(
                 title.toUpperCase(),
-                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w800, color: BlushyColors.secondaryText),
+                style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.w800, color: BlushyColors.secondaryText),
               ),
               const SizedBox(height: 8),
               Text(
                 "$value Days",
-                style: GoogleFonts.cormorantGaramond(fontSize: 26, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                style: GoogleFonts.poppins(fontSize: 26, fontWeight: FontWeight.bold, color: BlushyColors.text),
               ),
               const SizedBox(height: 4),
               Text(
                 label,
-                style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.secondaryText),
+                style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.secondaryText),
               ),
             ],
           ),
@@ -16548,7 +17888,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
       children: [
         Text(
           label.toUpperCase(),
-          style: GoogleFonts.inter(
+          style: GoogleFonts.poppins(
             fontSize: 9,
             fontWeight: FontWeight.w800,
             color: BlushyColors.primary,
@@ -16558,7 +17898,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
         const SizedBox(height: 2),
         Text(
           value,
-          style: GoogleFonts.inter(
+          style: GoogleFonts.poppins(
             fontSize: 11,
             color: BlushyColors.secondaryText,
             height: 1.35,
@@ -16574,7 +17914,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
       children: [
         Text(
           label.toUpperCase(),
-          style: GoogleFonts.inter(
+          style: GoogleFonts.poppins(
             fontSize: 8,
             fontWeight: FontWeight.w800,
             color: BlushyColors.secondaryText,
@@ -16584,7 +17924,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
         const SizedBox(height: 4),
         Text(
           val,
-          style: GoogleFonts.inter(
+          style: GoogleFonts.poppins(
             fontSize: 12,
             fontWeight: FontWeight.bold,
             color: BlushyColors.text,
@@ -16612,7 +17952,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
       children: [
         Text(
           "DAILY CHECKLIST",
-          style: GoogleFonts.inter(
+          style: GoogleFonts.poppins(
             fontSize: 10,
             fontWeight: FontWeight.w800,
             color: BlushyColors.secondaryText,
@@ -16635,7 +17975,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                 activeColor: BlushyColors.primary,
                 title: Text(
                   task,
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.poppins(
                     fontSize: 14,
                     color: isDone ? BlushyColors.secondaryText : BlushyColors.text,
                     decoration: isDone ? TextDecoration.lineThrough : null,
@@ -16657,53 +17997,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
 
   // --- 6. RECOMMENDATIONS WIDGET ---
   Widget _buildRecommendationsWidget(bool isPregnancy, bool hasPCOS, bool isMenopause, bool trackingDisabled, PersonalContext pc) {
-    final String stageStr = _onboardingData['lifeStage'] ?? '';
-    final bool isLivingWithCycle = stageStr == 'reproductiveYears';
-
-    final List<Map<String, String>> recs = [];
-
-    if (isLivingWithCycle) {
-      final cData = _getPersonalizedBranchCData(pc);
-      final List<dynamic> feed = cData['wellnessFeed'] ?? [];
-      for (final item in feed) {
-        recs.add({
-          'category': item['type'] ?? "HEALTH",
-          'title': item['title'] ?? "",
-          'desc': item['desc'] ?? "",
-          'action': "Read Insight",
-          'readTime': item['readTime'] ?? "4 min read",
-        });
-      }
-    } else if (isPregnancy) {
-      recs.addAll([
-        {'category': 'GUIDED LESSON', 'title': 'First Trimester Stretching Routines', 'action': 'Join Session'},
-        {'category': 'HEALTH READING', 'title': 'Iron Rich Nutritional Foods', 'action': 'Read Insight'},
-      ]);
-    } else if (hasPCOS) {
-      recs.addAll([
-        {'category': 'RECIPES', 'title': 'Anti-Inflammatory Breakfast Bowls', 'action': 'View Recipe'},
-        {'category': 'HEALTHY PLAN', 'title': 'Fatigue Management Guidelines', 'action': 'Start Plan'},
-      ]);
-    } else if (isMenopause) {
-      recs.addAll([
-        {'category': 'BREATHING', 'title': 'Cooling Breathwork for Hot Flashes', 'action': 'Start Session'},
-        {'category': 'GUIDED LESSON', 'title': 'Sleep Recovery Improvements', 'action': 'Start Lesson'},
-      ]);
-    } else {
-      recs.addAll([
-        {'category': 'GUIDED MEDITATION', 'title': 'Deep Sleep Relaxation Session', 'action': 'Join Session'},
-        {'category': 'HEALTH HABIT', 'title': 'Building Better Sleep Hygiene', 'action': 'Read Insight'},
-      ]);
-    }
-
-    final String headingText = isLivingWithCycle ? "WELLNESS FEED" : "PERSONALIZED RECOMMENDATIONS";
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          headingText,
-          style: GoogleFonts.inter(
+          "SIA'S RECOMMENDED ACTIONS",
+          style: GoogleFonts.poppins(
             fontSize: 10,
             fontWeight: FontWeight.w800,
             color: BlushyColors.secondaryText,
@@ -16711,10 +18010,31 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           ),
         ),
         const SizedBox(height: 12),
-        ...recs.map((rec) {
-          final String subtitleText = rec['desc'] ?? "";
+        ...dummyRecommendations.map((rec) {
+          IconData categoryIcon;
+          Color categoryColor;
+          final cat = rec.category.toLowerCase();
+          if (cat == 'energy') {
+            categoryIcon = Icons.bolt_rounded;
+            categoryColor = const Color(0xFFFF4A00);
+          } else if (cat == 'nutrition') {
+            categoryIcon = Icons.restaurant_rounded;
+            categoryColor = const Color(0xFF8FAE8A);
+          } else if (cat == 'sleep') {
+            categoryIcon = Icons.bedtime_rounded;
+            categoryColor = const Color(0xFF6F42F5);
+          } else if (cat == 'mind') {
+            categoryIcon = Icons.spa_rounded;
+            categoryColor = const Color(0xFFFF9B9E);
+          } else {
+            categoryIcon = Icons.star_rounded;
+            categoryColor = BlushyColors.primary;
+          }
+
+          final isHigh = rec.priority.toLowerCase() == 'high';
+
           return Padding(
-            padding: const EdgeInsets.only(bottom: 12.0),
+            padding: const EdgeInsets.only(bottom: 16.0),
             child: Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -16735,47 +18055,66 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        rec['category']!.toUpperCase(),
-                        style: GoogleFonts.inter(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w800,
-                          color: BlushyColors.primary,
-                          letterSpacing: 1.1,
-                        ),
+                      Row(
+                        children: [
+                          Icon(categoryIcon, size: 14, color: categoryColor),
+                          const SizedBox(width: 6),
+                          Text(
+                            rec.category.toUpperCase(),
+                            style: GoogleFonts.poppins(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800,
+                              color: categoryColor,
+                              letterSpacing: 1.1,
+                            ),
+                          ),
+                        ],
                       ),
-                      if (rec['readTime'] != null)
-                        Text(
-                          rec['readTime']!,
-                          style: GoogleFonts.inter(
-                            fontSize: 10,
-                            color: BlushyColors.secondaryText,
-                            fontWeight: FontWeight.w600,
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: isHigh ? const Color(0xFFFFEAE6) : BlushyColors.taupe,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          "${rec.priority.toUpperCase()} PRIORITY",
+                          style: GoogleFonts.poppins(
+                            fontSize: 8,
+                            fontWeight: FontWeight.bold,
+                            color: isHigh ? const Color(0xFFDD0D22) : BlushyColors.secondaryText,
                           ),
                         ),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
                   Text(
-                    rec['title']!,
-                    style: GoogleFonts.cormorantGaramond(
-                      fontSize: 20,
+                    rec.title,
+                    style: GoogleFonts.poppins(
+                      fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: BlushyColors.text,
                       height: 1.2,
                     ),
                   ),
-                  if (subtitleText.isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    Text(
-                      subtitleText,
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        color: BlushyColors.secondaryText,
-                        height: 1.4,
-                      ),
+                  const SizedBox(height: 6),
+                  Text(
+                    rec.description,
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: BlushyColors.text.withOpacity(0.9),
+                      height: 1.4,
                     ),
-                  ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    "Reason: ${rec.reason}",
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      color: BlushyColors.secondaryText,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
                   const SizedBox(height: 14),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -16783,7 +18122,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       TextButton(
                         onPressed: () {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Opening: ${rec['title']}')),
+                            SnackBar(content: Text('Starting: ${rec.title}')),
                           );
                         },
                         style: TextButton.styleFrom(
@@ -16794,8 +18133,8 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                         child: Row(
                           children: [
                             Text(
-                              rec['action']!,
-                              style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700),
+                              rec.actionLabel,
+                              style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w700),
                             ),
                             const SizedBox(width: 4),
                             const Icon(Icons.arrow_forward_rounded, size: 12),
@@ -16864,7 +18203,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
       children: [
         Text(
           "QUICK ACTIONS",
-          style: GoogleFonts.inter(
+          style: GoogleFonts.poppins(
             fontSize: 10,
             fontWeight: FontWeight.w800,
             color: BlushyColors.secondaryText,
@@ -16904,7 +18243,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     Expanded(
                       child: Text(
                         action['label'] as String,
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.poppins(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
                           color: BlushyColors.text,
@@ -16946,7 +18285,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           children: [
             Text(
               "QUICK CHECK-IN",
-              style: GoogleFonts.inter(
+              style: GoogleFonts.poppins(
                 fontSize: 10,
                 fontWeight: FontWeight.w800,
                 color: BlushyColors.primary,
@@ -16956,7 +18295,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             const SizedBox(height: 16),
             Text(
               "How is your body feeling today?",
-              style: GoogleFonts.cormorantGaramond(
+              style: GoogleFonts.poppins(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
                 color: BlushyColors.text,
@@ -16965,7 +18304,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             const SizedBox(height: 16),
             
             // Mood Selector
-            Text("MOOD", style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w800, color: BlushyColors.secondaryText, letterSpacing: 0.8)),
+            Text("MOOD", style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.w800, color: BlushyColors.secondaryText, letterSpacing: 0.8)),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
@@ -16980,7 +18319,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   },
                   backgroundColor: Colors.transparent,
                   selectedColor: BlushyColors.primary.withOpacity(0.12),
-                  labelStyle: GoogleFonts.inter(
+                  labelStyle: GoogleFonts.poppins(
                     fontSize: 12,
                     fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
                     color: isSel ? BlushyColors.primary : BlushyColors.text,
@@ -16996,7 +18335,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             const SizedBox(height: 18),
 
             // Energy Selector
-            Text("ENERGY LEVEL", style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w800, color: BlushyColors.secondaryText, letterSpacing: 0.8)),
+            Text("ENERGY LEVEL", style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.w800, color: BlushyColors.secondaryText, letterSpacing: 0.8)),
             const SizedBox(height: 8),
             Row(
               children: ['Low', 'Medium', 'High'].map((lvl) {
@@ -17011,7 +18350,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     },
                     backgroundColor: Colors.transparent,
                     selectedColor: BlushyColors.primary.withOpacity(0.12),
-                    labelStyle: GoogleFonts.inter(
+                    labelStyle: GoogleFonts.poppins(
                       fontSize: 12,
                       fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
                       color: isSel ? BlushyColors.primary : BlushyColors.text,
@@ -17028,7 +18367,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             const SizedBox(height: 18),
 
             // Symptoms Selector
-            Text("SYMPTOMS", style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w800, color: BlushyColors.secondaryText, letterSpacing: 0.8)),
+            Text("SYMPTOMS", style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.w800, color: BlushyColors.secondaryText, letterSpacing: 0.8)),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
@@ -17049,7 +18388,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   },
                   backgroundColor: Colors.transparent,
                   selectedColor: BlushyColors.primary.withOpacity(0.12),
-                  labelStyle: GoogleFonts.inter(
+                  labelStyle: GoogleFonts.poppins(
                     fontSize: 12,
                     fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
                     color: isSel ? BlushyColors.primary : BlushyColors.text,
@@ -17065,7 +18404,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             const SizedBox(height: 18),
 
             // Stress Selector
-            Text("STRESS", style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w800, color: BlushyColors.secondaryText, letterSpacing: 0.8)),
+            Text("STRESS", style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.w800, color: BlushyColors.secondaryText, letterSpacing: 0.8)),
             const SizedBox(height: 8),
             Row(
               children: ['Low', 'Moderate', 'High'].map((lvl) {
@@ -17080,7 +18419,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     },
                     backgroundColor: Colors.transparent,
                     selectedColor: BlushyColors.primary.withOpacity(0.12),
-                    labelStyle: GoogleFonts.inter(
+                    labelStyle: GoogleFonts.poppins(
                       fontSize: 12,
                       fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
                       color: isSel ? BlushyColors.primary : BlushyColors.text,
@@ -17103,7 +18442,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text("SLEEP QUALITY", style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w800, color: BlushyColors.secondaryText, letterSpacing: 0.8)),
+                      Text("SLEEP QUALITY", style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.w800, color: BlushyColors.secondaryText, letterSpacing: 0.8)),
                       const SizedBox(height: 8),
                       DropdownButtonFormField<String>(
                         value: _selectedSleepQuality,
@@ -17111,7 +18450,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: BlushyColors.border)),
                         ),
-                        items: ['Restful', 'Interrupted', 'Short'].map((s) => DropdownMenuItem(value: s, child: Text(s, style: GoogleFonts.inter(fontSize: 12)))).toList(),
+                        items: ['Restful', 'Interrupted', 'Short'].map((s) => DropdownMenuItem(value: s, child: Text(s, style: GoogleFonts.poppins(fontSize: 12)))).toList(),
                         onChanged: (val) {
                           setState(() { _selectedSleepQuality = val; });
                         },
@@ -17124,7 +18463,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text("WATER INTAKE", style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w800, color: BlushyColors.secondaryText, letterSpacing: 0.8)),
+                      Text("WATER INTAKE", style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.w800, color: BlushyColors.secondaryText, letterSpacing: 0.8)),
                       const SizedBox(height: 8),
                       DropdownButtonFormField<String>(
                         value: _selectedWaterIntake,
@@ -17132,7 +18471,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: BlushyColors.border)),
                         ),
-                        items: ['1 Litre', '2 Litres', '3 Litres'].map((w) => DropdownMenuItem(value: w, child: Text(w, style: GoogleFonts.inter(fontSize: 12)))).toList(),
+                        items: ['1 Litre', '2 Litres', '3 Litres'].map((w) => DropdownMenuItem(value: w, child: Text(w, style: GoogleFonts.poppins(fontSize: 12)))).toList(),
                         onChanged: (val) {
                           setState(() { _selectedWaterIntake = val; });
                         },
@@ -17160,7 +18499,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                 ),
                 child: Text(
                   "Save Entry",
-                  style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700),
+                  style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w700),
                 ),
               ),
             ),
@@ -17186,7 +18525,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
       children: [
         Text(
           "HEALTH TIMELINE",
-          style: GoogleFonts.inter(
+          style: GoogleFonts.poppins(
             fontSize: 10,
             fontWeight: FontWeight.w800,
             color: BlushyColors.secondaryText,
@@ -17220,13 +18559,13 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(ev['title']!, style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 14, color: BlushyColors.text)),
+                        Text(ev['title']!, style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 14, color: BlushyColors.text)),
                         const SizedBox(height: 2),
-                        Text(ev['subtitle']!, style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.secondaryText)),
+                        Text(ev['subtitle']!, style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.secondaryText)),
                       ],
                     ),
                   ),
-                  Text(ev['time']!, style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.secondaryText)),
+                  Text(ev['time']!, style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.secondaryText)),
                 ],
               );
             },
@@ -17289,13 +18628,13 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     Text(
                       step['title'] as String,
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.cormorantGaramond(fontSize: 30, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                      style: GoogleFonts.poppins(fontSize: 30, fontWeight: FontWeight.bold, color: BlushyColors.text),
                     ),
                     const SizedBox(height: 12),
                     Text(
                       step['desc'] as String,
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.inter(fontSize: 13, color: BlushyColors.secondaryText, height: 1.5),
+                      style: GoogleFonts.poppins(fontSize: 13, color: BlushyColors.secondaryText, height: 1.5),
                     ),
                     const SizedBox(height: 28),
                     Row(
@@ -17309,7 +18648,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                           },
                           child: Text(
                             "Skip",
-                            style: GoogleFonts.inter(fontSize: 13, color: BlushyColors.secondaryText),
+                            style: GoogleFonts.poppins(fontSize: 13, color: BlushyColors.secondaryText),
                           ),
                         ),
                         ElevatedButton(
@@ -17330,7 +18669,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                           ),
                           child: Text(
                             _coachMarkStep == steps.length - 1 ? "Done" : "Next",
-                            style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
+                            style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
                           ),
                         ),
                       ],
@@ -17359,14 +18698,14 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   const Text(
-                    "🌸",
+                    "",
                     style: TextStyle(fontSize: 72),
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    "🌸 Congratulations!",
+                    " Congratulations!",
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.cormorantGaramond(
+                    style: GoogleFonts.poppins(
                       fontSize: 36,
                       fontWeight: FontWeight.bold,
                       color: BlushyColors.text,
@@ -17377,7 +18716,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   Text(
                     "You started your first period.",
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: BlushyColors.primary,
@@ -17405,7 +18744,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                         Text(
                           "\"This is a special milestone.\n\nFrom today, Blushy will help you understand your own unique cycle.\n\nWe'll learn together, one step at a time.\"",
                           textAlign: TextAlign.center,
-                          style: GoogleFonts.cormorantGaramond(
+                          style: GoogleFonts.poppins(
                             fontSize: 20,
                             fontStyle: FontStyle.italic,
                             color: BlushyColors.text,
@@ -17415,7 +18754,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                         const SizedBox(height: 20),
                         Text(
                           "— Sia",
-                          style: GoogleFonts.cormorantGaramond(
+                          style: GoogleFonts.poppins(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                             fontStyle: FontStyle.italic,
@@ -17456,7 +18795,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     ),
                     child: Text(
                       "Continue My Journey",
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.poppins(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
@@ -17481,14 +18820,14 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             const SizedBox(width: 8),
             Text(
               "GROWING TOGETHER",
-              style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w900, color: BlushyColors.primary, letterSpacing: 1.2),
+              style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.w900, color: BlushyColors.primary, letterSpacing: 1.2),
             ),
           ],
         ),
         const SizedBox(height: 12),
         Text(
           "Involve a Trusted Adult",
-          style: GoogleFonts.cormorantGaramond(
+          style: GoogleFonts.poppins(
             fontSize: 26,
             fontWeight: FontWeight.bold,
             color: BlushyColors.text,
@@ -17497,7 +18836,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
         const SizedBox(height: 6),
         Text(
           "We want you to feel supported. Here are gentle, safe ways to start conversations with people you trust. Personal journals and chats stay private.",
-          style: GoogleFonts.inter(
+          style: GoogleFonts.poppins(
             fontSize: 13,
             color: BlushyColors.secondaryText,
             height: 1.45,
@@ -17522,12 +18861,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               children: [
                 Text(
                   starter['title']!,
-                  style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                  style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   starter['desc']!,
-                  style: GoogleFonts.inter(fontSize: 12, fontStyle: FontStyle.italic, color: BlushyColors.secondaryText),
+                  style: GoogleFonts.poppins(fontSize: 12, fontStyle: FontStyle.italic, color: BlushyColors.secondaryText),
                 ),
               ],
             ),
@@ -17552,12 +18891,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   children: [
                     Text(
                       "First Period Shopping Checklist",
-                      style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                      style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       "Pick out soft pads, comforting heat packs, and underwear together.",
-                      style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.secondaryText),
+                      style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.secondaryText),
                     ),
                   ],
                 ),
@@ -17607,12 +18946,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                   children: [
                     Text(
                       "Share Preparing Together Guide",
-                      style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                      style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       "Send a reassuring puberty overview to a trusted adult.",
-                      style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.secondaryText),
+                      style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.secondaryText),
                     ),
                   ],
                 ),
@@ -17634,6 +18973,338 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
     );
   }
 
+  Widget _buildYourGrowingJourneySection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.map_outlined, color: BlushyColors.primary, size: 16),
+            const SizedBox(width: 8),
+            Text(
+              "YOUR GROWING JOURNEY",
+              style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: BlushyColors.primary, letterSpacing: 1.2),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Text(
+          "Confidence & Learning",
+          style: GoogleFonts.poppins(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: BlushyColors.text,
+            height: 1.3,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          "Every step builds confidence in listening to your body. Here is how far we've come together:",
+          style: GoogleFonts.poppins(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: BlushyColors.secondaryText,
+            height: 1.5,
+          ),
+        ),
+        const SizedBox(height: 20),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: BlushyColors.border, width: 0.8),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildJourneyStep("Logged First Period", true),
+              _buildJourneyStep("Completed First Cycle", true),
+              _buildJourneyStep("Logged First Symptoms", false),
+              _buildJourneyStep("Learnt About Cycle Phases", false),
+              _buildJourneyStep("Recognised First Pattern", false),
+              _buildJourneyStep("Built Your Cycle Rhythm", false),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        const Divider(color: Color(0x1F2E2623), thickness: 1),
+      ],
+    );
+  }
+
+  Widget _buildJourneyStep(String title, bool isCompleted) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Icon(
+            isCompleted ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+            color: isCompleted ? BlushyColors.success : BlushyColors.disabled.withOpacity(0.5),
+            size: 18,
+          ),
+          const SizedBox(width: 12),
+          Text(
+            title,
+            style: GoogleFonts.poppins(
+              fontSize: 13,
+              fontWeight: isCompleted ? FontWeight.bold : FontWeight.normal,
+              color: isCompleted ? BlushyColors.text : BlushyColors.secondaryText,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTodayCheckInComponent() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.favorite_outline_rounded, color: BlushyColors.primary, size: 16),
+            const SizedBox(width: 8),
+            Text(
+              "TODAY'S CHECK-IN",
+              style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: BlushyColors.primary, letterSpacing: 1.2),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Text(
+          "How am I feeling today?",
+          style: GoogleFonts.poppins(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: BlushyColors.text,
+            height: 1.3,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          "Every update helps me understand your unique cycle a little better.",
+          style: GoogleFonts.poppins(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: BlushyColors.secondaryText,
+            height: 1.5,
+          ),
+        ),
+        const SizedBox(height: 20),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: BlushyColors.border, width: 0.8),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 1. Flow
+              Text(
+                "FLOW",
+                style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText, letterSpacing: 1.0),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: ["No Period", "Spotting", "Light", "Medium", "Heavy"].map((flow) {
+                  final isSelected = _checkInFlow == flow;
+                  return ChoiceChip(
+                    label: Text(flow),
+                    selected: isSelected,
+                    onSelected: (selected) {
+                      if (selected) {
+                        setState(() {
+                          _checkInFlow = flow;
+                        });
+                      }
+                    },
+                    selectedColor: BlushyColors.primary.withOpacity(0.12),
+                    backgroundColor: const Color(0xFFF9F6F0),
+                    labelStyle: GoogleFonts.poppins(
+                      fontSize: 12,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      color: isSelected ? BlushyColors.primary : BlushyColors.text,
+                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide.none),
+                    showCheckmark: false,
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 20),
+
+              // 2. Symptoms
+              Text(
+                "SYMPTOMS",
+                style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText, letterSpacing: 1.0),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: ["Cramps", "Headache", "Acne", "Bloating", "Breast Tenderness", "Back Pain"].map((symptom) {
+                  final isSelected = _checkInSymptoms.contains(symptom);
+                  return FilterChip(
+                    label: Text(symptom),
+                    selected: isSelected,
+                    onSelected: (selected) {
+                      setState(() {
+                        if (selected) {
+                          _checkInSymptoms.add(symptom);
+                        } else {
+                          _checkInSymptoms.remove(symptom);
+                        }
+                      });
+                    },
+                    selectedColor: BlushyColors.primary.withOpacity(0.12),
+                    backgroundColor: const Color(0xFFF9F6F0),
+                    labelStyle: GoogleFonts.poppins(
+                      fontSize: 12,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      color: isSelected ? BlushyColors.primary : BlushyColors.text,
+                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide.none),
+                    showCheckmark: false,
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 20),
+
+              // 3. Mood
+              Text(
+                "MOOD",
+                style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText, letterSpacing: 1.0),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: ["Calm", "Happy", "Emotional", "Irritated", "Anxious", "Tired"].map((mood) {
+                  final isSelected = _checkInMood == mood;
+                  return ChoiceChip(
+                    label: Text(mood),
+                    selected: isSelected,
+                    onSelected: (selected) {
+                      if (selected) {
+                        setState(() {
+                          _checkInMood = mood;
+                        });
+                      }
+                    },
+                    selectedColor: BlushyColors.primary.withOpacity(0.12),
+                    backgroundColor: const Color(0xFFF9F6F0),
+                    labelStyle: GoogleFonts.poppins(
+                      fontSize: 12,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      color: isSelected ? BlushyColors.primary : BlushyColors.text,
+                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide.none),
+                    showCheckmark: false,
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 20),
+
+              // 4. Energy
+              Text(
+                "ENERGY",
+                style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText, letterSpacing: 1.0),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: ["Very Low", "Low", "Balanced", "High", "Very High"].map((energy) {
+                  final isSelected = _checkInEnergy == energy;
+                  return ChoiceChip(
+                    label: Text(energy),
+                    selected: isSelected,
+                    onSelected: (selected) {
+                      if (selected) {
+                        setState(() {
+                          _checkInEnergy = energy;
+                        });
+                      }
+                    },
+                    selectedColor: BlushyColors.primary.withOpacity(0.12),
+                    backgroundColor: const Color(0xFFF9F6F0),
+                    labelStyle: GoogleFonts.poppins(
+                      fontSize: 12,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      color: isSelected ? BlushyColors.primary : BlushyColors.text,
+                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide.none),
+                    showCheckmark: false,
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 28),
+
+              // Save CTA
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: BlushyColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    elevation: 0,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _checkInSaved = true;
+                    });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Today's check-in saved securely!")),
+                    );
+                  },
+                  child: Text(
+                    "Save Today's Check-in",
+                    style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+
+              if (_checkInSaved) ...[
+                const SizedBox(height: 20),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: BlushyColors.success.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: BlushyColors.success.withOpacity(0.2)),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.favorite_rounded, color: BlushyColors.success, size: 16),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          "Thanks for checking in today. Every update helps me understand your unique cycle a little better.",
+                          style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.text, height: 1.4),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        const Divider(color: Color(0x1F2E2623), thickness: 1),
+      ],
+    );
+  }
+
   Widget _buildSimpleCheckItem(String text) {
     bool checked = false;
     return StatefulBuilder(
@@ -17642,7 +19313,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           value: checked,
           controlAffinity: ListTileControlAffinity.leading,
           activeColor: BlushyColors.primary,
-          title: Text(text, style: GoogleFonts.inter(fontSize: 13, color: BlushyColors.text)),
+          title: Text(text, style: GoogleFonts.poppins(fontSize: 13, color: BlushyColors.text)),
           onChanged: (val) {
             setLocalState(() {
               checked = val ?? false;
@@ -17664,14 +19335,14 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             const SizedBox(width: 8),
             Text(
               "COMMUNITY & M STUDIO",
-              style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w900, color: BlushyColors.primary, letterSpacing: 1.2),
+              style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.w900, color: BlushyColors.primary, letterSpacing: 1.2),
             ),
           ],
         ),
         const SizedBox(height: 12),
         Text(
           "Our Shared Circle",
-          style: GoogleFonts.cormorantGaramond(
+          style: GoogleFonts.poppins(
             fontSize: 26,
             fontWeight: FontWeight.bold,
             color: BlushyColors.text,
@@ -17680,7 +19351,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
         const SizedBox(height: 6),
         Text(
           "Reflect on your day or read reassurance stories from other girls growing up.",
-          style: GoogleFonts.inter(
+          style: GoogleFonts.poppins(
             fontSize: 13,
             color: BlushyColors.secondaryText,
             height: 1.45,
@@ -17690,7 +19361,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
         if (posts.isNotEmpty) ...[
           Text(
             "COMMUNITY WISDOM",
-            style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText, letterSpacing: 0.5),
+            style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText, letterSpacing: 0.5),
           ),
           const SizedBox(height: 8),
           ...posts.map((post) {
@@ -17707,12 +19378,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                 children: [
                   Text(
                     post['text'] ?? "",
-                    style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.text, height: 1.35),
+                    style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.text, height: 1.35),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     "— ${post['user'] ?? 'Anonymous'}",
-                    style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                    style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                   ),
                 ],
               ),
@@ -17722,22 +19393,22 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
         ],
         Text(
           "MY DAILY REFLECTION",
-          style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText, letterSpacing: 0.5),
+          style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText, letterSpacing: 0.5),
         ),
         const SizedBox(height: 12),
         Text(
           "How are you feeling today?",
-          style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
+          style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
         ),
         const SizedBox(height: 12),
         Wrap(
           spacing: 8,
           runSpacing: 8,
           children: [
-            {'label': '😊 Happy', 'color': Colors.orange},
-            {'label': '🤔 Curious', 'color': Colors.blue},
-            {'label': '🥺 Nervous', 'color': Colors.purple},
-            {'label': '🎉 Excited', 'color': Colors.teal},
+            {'label': ' Happy', 'color': BlushyColors.warning},
+            {'label': ' Curious', 'color': BlushyColors.info},
+            {'label': ' Nervous', 'color': BlushyColors.secondary},
+            {'label': ' Excited', 'color': BlushyColors.info},
           ].map((f) {
             final isSelected = _selectedFeeling == f['label'];
             final col = f['color'] as Color;
@@ -17757,7 +19428,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                 ),
                 child: Text(
                   f['label'] as String,
-                  style: GoogleFonts.inter(fontSize: 12, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, color: BlushyColors.text),
+                  style: GoogleFonts.poppins(fontSize: 12, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, color: BlushyColors.text),
                 ),
               ),
             );
@@ -17765,10 +19436,10 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
         ),
         const SizedBox(height: 16),
         TextField(
-          style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.text),
+          style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.text),
           decoration: InputDecoration(
             hintText: "Jot down a quick thought or creative sketch...",
-            hintStyle: GoogleFonts.inter(color: BlushyColors.secondaryText.withOpacity(0.5), fontSize: 12),
+            hintStyle: GoogleFonts.poppins(color: BlushyColors.secondaryText.withOpacity(0.5), fontSize: 12),
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             filled: true,
             fillColor: Colors.white,
@@ -17788,7 +19459,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                 });
               },
               icon: Icon(Icons.gesture_rounded, size: 14, color: _isDrawingMode ? BlushyColors.primary : BlushyColors.secondaryText),
-              label: Text("Sketch", style: GoogleFonts.inter(fontSize: 11, color: _isDrawingMode ? BlushyColors.primary : BlushyColors.secondaryText)),
+              label: Text("Sketch", style: GoogleFonts.poppins(fontSize: 11, color: _isDrawingMode ? BlushyColors.primary : BlushyColors.secondaryText)),
               style: OutlinedButton.styleFrom(
                 side: BorderSide(color: _isDrawingMode ? BlushyColors.primary : BlushyColors.border),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -17802,7 +19473,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                 );
               },
               icon: const Icon(Icons.mic_none_outlined, size: 14, color: BlushyColors.secondaryText),
-              label: Text("Voice Note", style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.secondaryText)),
+              label: Text("Voice Note", style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.secondaryText)),
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: BlushyColors.border),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -17821,7 +19492,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                 elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
-              child: Text("Save", style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold)),
+              child: Text("Save", style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -17870,12 +19541,14 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             children: [
               const Icon(Icons.favorite_rounded, size: 22, color: BlushyColors.primary),
               const SizedBox(width: 8),
-              Text(
-                "Let's Start Tracking Together",
-                style: GoogleFonts.cormorantGaramond(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: BlushyColors.text,
+              Expanded(
+                child: Text(
+                  "Let's Start Tracking Together",
+                  style: GoogleFonts.poppins(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: BlushyColors.text,
+                  ),
                 ),
               ),
             ],
@@ -17883,7 +19556,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           const SizedBox(height: 12),
           Text(
             "\"Every body is different.\n\nTell me when your period started and I'll help you understand your own cycle.\n\nIf you're not sure, that's completely okay.\"",
-            style: GoogleFonts.cormorantGaramond(
+            style: GoogleFonts.poppins(
               fontSize: 18,
               fontStyle: FontStyle.italic,
               color: BlushyColors.secondaryText,
@@ -17936,7 +19609,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                 ),
                 child: Text(
                   "Log My First Period",
-                  style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold),
+                  style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold),
                 ),
               ),
               const SizedBox(width: 12),
@@ -18017,7 +19690,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                 ),
                 child: Text(
                   "I'm Not Sure",
-                  style: GoogleFonts.inter(fontSize: 13, color: BlushyColors.secondaryText),
+                  style: GoogleFonts.poppins(fontSize: 13, color: BlushyColors.secondaryText),
                 ),
               ),
             ],
@@ -18037,14 +19710,14 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             const SizedBox(width: 8),
             Text(
               "TALK TO SIA",
-              style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w900, color: BlushyColors.primary, letterSpacing: 1.2),
+              style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.w900, color: BlushyColors.primary, letterSpacing: 1.2),
             ),
           ],
         ),
         const SizedBox(height: 12),
         Text(
           "Talk to Sia",
-          style: GoogleFonts.cormorantGaramond(
+          style: GoogleFonts.poppins(
             fontSize: 26,
             fontWeight: FontWeight.bold,
             color: BlushyColors.text,
@@ -18053,7 +19726,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
         const SizedBox(height: 6),
         Text(
           "Ask Sia a question about growing up, write reflections, mood check-ins, quick notes, or creative prompts.",
-          style: GoogleFonts.inter(
+          style: GoogleFonts.poppins(
             fontSize: 13,
             color: BlushyColors.secondaryText,
             height: 1.45,
@@ -18078,44 +19751,43 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "How are you feeling today?",
-                style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                "Quick Prompts for Sia:",
+                style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
               ),
               const SizedBox(height: 12),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  {'label': 'Happy', 'icon': Icons.sentiment_very_satisfied_rounded, 'color': Colors.orange},
-                  {'label': 'Curious', 'icon': Icons.psychology_alt_rounded, 'color': Colors.blue},
-                  {'label': 'Nervous', 'icon': Icons.sentiment_dissatisfied_rounded, 'color': Colors.purple},
-                  {'label': 'Excited', 'icon': Icons.celebration_rounded, 'color': Colors.teal},
-                ].map((f) {
-                  final isSelected = _selectedFeeling == f['label'];
-                  final col = f['color'] as Color;
-                  final icon = f['icon'] as IconData;
+                  "Why do I feel this way today?",
+                  "Explain my cycle.",
+                  "Is this symptom normal?",
+                  "What should I expect next?",
+                ].map((promptText) {
                   return InkWell(
                     onTap: () {
                       setState(() {
-                        _selectedFeeling = f['label'] as String;
+                        _selectedFeeling = promptText;
                       });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text("Sia: \"Let's talk about: $promptText\"")),
+                      );
                     },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
+                    child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                       decoration: BoxDecoration(
-                        color: isSelected ? col.withOpacity(0.08) : Colors.white,
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: isSelected ? col : BlushyColors.border),
+                        border: Border.all(color: BlushyColors.border),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(icon, size: 14, color: isSelected ? col : BlushyColors.secondaryText),
+                          const Icon(Icons.help_outline_rounded, size: 14, color: BlushyColors.primary),
                           const SizedBox(width: 6),
                           Text(
-                            f['label'] as String,
-                            style: GoogleFonts.inter(fontSize: 12, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, color: BlushyColors.text),
+                            promptText,
+                            style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.text),
                           ),
                         ],
                       ),
@@ -18125,10 +19797,10 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               ),
               const SizedBox(height: 20),
               TextField(
-                style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.text),
+                style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.text),
                 decoration: InputDecoration(
                   hintText: "Ask Sia anything, or write a quick journal reflection...",
-                  hintStyle: GoogleFonts.inter(color: BlushyColors.secondaryText.withOpacity(0.5), fontSize: 12),
+                  hintStyle: GoogleFonts.poppins(color: BlushyColors.secondaryText.withOpacity(0.5), fontSize: 12),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   filled: true,
                   fillColor: const Color(0xFFFDFBFA),
@@ -18150,7 +19822,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       });
                     },
                     icon: Icon(Icons.gesture_rounded, size: 14, color: _isDrawingMode ? BlushyColors.primary : BlushyColors.secondaryText),
-                    label: Text("Sketch", style: GoogleFonts.inter(fontSize: 11, color: _isDrawingMode ? BlushyColors.primary : BlushyColors.secondaryText)),
+                    label: Text("Sketch", style: GoogleFonts.poppins(fontSize: 11, color: _isDrawingMode ? BlushyColors.primary : BlushyColors.secondaryText)),
                     style: OutlinedButton.styleFrom(
                       side: BorderSide(color: _isDrawingMode ? BlushyColors.primary : BlushyColors.border),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -18163,7 +19835,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       );
                     },
                     icon: const Icon(Icons.mic_none_outlined, size: 14, color: BlushyColors.secondaryText),
-                    label: Text("Voice Note", style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.secondaryText)),
+                    label: Text("Voice Note", style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.secondaryText)),
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: BlushyColors.border),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -18176,7 +19848,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       );
                     },
                     icon: const Icon(Icons.edit_note_rounded, size: 14, color: BlushyColors.secondaryText),
-                    label: Text("Quick Note", style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.secondaryText)),
+                    label: Text("Quick Note", style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.secondaryText)),
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: BlushyColors.border),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -18189,7 +19861,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       );
                     },
                     icon: const Icon(Icons.lightbulb_outline_rounded, size: 14, color: BlushyColors.secondaryText),
-                    label: Text("Creative Prompts", style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.secondaryText)),
+                    label: Text("Creative Prompts", style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.secondaryText)),
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: BlushyColors.border),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -18221,7 +19893,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     elevation: 0,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
-                  child: Text("Send / Save", style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold)),
+                  child: Text("Send / Save", style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold)),
                 ),
               ),
               if (_isDrawingMode) ...[
@@ -18276,14 +19948,14 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             const SizedBox(width: 8),
             Text(
               "YOUR PATTERNS",
-              style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w900, color: BlushyColors.primary, letterSpacing: 1.2),
+              style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.w900, color: BlushyColors.primary, letterSpacing: 1.2),
             ),
           ],
         ),
         const SizedBox(height: 12),
         Text(
           "Personalised reflections",
-          style: GoogleFonts.cormorantGaramond(
+          style: GoogleFonts.poppins(
             fontSize: 26,
             fontWeight: FontWeight.bold,
             color: BlushyColors.text,
@@ -18292,7 +19964,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
         const SizedBox(height: 6),
         Text(
           "Understand how your body's rhythm influences your daily wellbeing.",
-          style: GoogleFonts.inter(
+          style: GoogleFonts.poppins(
             fontSize: 13,
             color: BlushyColors.secondaryText,
             height: 1.45,
@@ -18313,24 +19985,24 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               if (!hasData) ...[
                 Text(
                   "We're still gathering details to spot your patterns.",
-                  style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                  style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   "Symptom logs help Sia understand your body's rhythm. Once you log symptoms (like fatigue or cramps) in the developer panel, personalised reflections will appear here!",
-                  style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.secondaryText, height: 1.45),
+                  style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.secondaryText, height: 1.45),
                 ),
               ] else ...[
                 Text(
                   "Based on your recent logs:",
-                  style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                  style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold, color: BlushyColors.text),
                 ),
                 const SizedBox(height: 12),
                 ...reflections.map((ref) => Padding(
                   padding: const EdgeInsets.symmetric(vertical: 4.0),
                   child: Text(
                     ref,
-                    style: GoogleFonts.inter(fontSize: 13, color: BlushyColors.text, height: 1.4),
+                    style: GoogleFonts.poppins(fontSize: 13, color: BlushyColors.text, height: 1.4),
                   ),
                 )),
               ],
@@ -18359,7 +20031,7 @@ class DeveloperContextSimulator extends StatelessWidget {
           children: [
             Text(
               "Developer Context Simulator",
-              style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold),
+              style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const Divider(),
             if (onLifeStageChanged != null) ...[
@@ -18420,8 +20092,8 @@ class DeveloperContextSimulator extends StatelessWidget {
                   icon: const Icon(Icons.refresh_rounded, size: 16),
                   label: const Text("Reset to Onboarding Step", style: TextStyle(fontSize: 11)),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.redAccent.withOpacity(0.1),
-                    foregroundColor: Colors.redAccent,
+                    backgroundColor: BlushyColors.danger.withOpacity(0.1),
+                    foregroundColor: BlushyColors.danger,
                     elevation: 0,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),

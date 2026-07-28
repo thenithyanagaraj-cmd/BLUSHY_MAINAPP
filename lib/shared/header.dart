@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/colors.dart';
 import '../features/home/widgets/my_health_screen.dart';
+import '../core/theme.dart' hide BlushyColors;
 
 
 class BlushyHeader extends StatelessWidget implements PreferredSizeWidget {
@@ -9,20 +10,33 @@ class BlushyHeader extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
+    return Container(
+      color: BlushyColors.background,
+      child: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: BlushyTheme.getPagePadding(context), vertical: 12.0),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             // BLUSHY Logo
-            Text(
-              'BLUSHY',
-              style: GoogleFonts.cormorantGaramond(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                color: BlushyColors.primary,
-                letterSpacing: 1.5,
+            RichText(
+              text: const TextSpan(
+                style: TextStyle(
+                  fontFamily: 'Ada Hybrid',
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.5,
+                ),
+                children: [
+                  TextSpan(
+                    text: 'BLUSHY',
+                    style: TextStyle(color: BlushyColors.primary),
+                  ),
+                  TextSpan(
+                    text: '.',
+                    style: TextStyle(color: BlushyColors.accent),
+                  ),
+                ],
               ),
             ),
             
@@ -45,7 +59,7 @@ class BlushyHeader extends StatelessWidget implements PreferredSizeWidget {
                         const SizedBox(width: 4),
                         Text(
                           'EN',
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.poppins(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
                             color: BlushyColors.text,
@@ -82,8 +96,9 @@ class BlushyHeader extends StatelessWidget implements PreferredSizeWidget {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   @override
   Size get preferredSize => const Size.fromHeight(64.0);

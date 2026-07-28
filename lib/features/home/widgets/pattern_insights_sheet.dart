@@ -36,7 +36,7 @@ class BlushyPatternInsightsSheet extends StatelessWidget {
               const SizedBox(height: 24),
               Text(
                 'Pattern Insights',
-                style: GoogleFonts.cormorantGaramond(
+                style: GoogleFonts.poppins(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
                   color: BlushyColors.text,
@@ -45,7 +45,7 @@ class BlushyPatternInsightsSheet extends StatelessWidget {
               const SizedBox(height: 16),
               Text(
                 'Based on your data, Sia has observed the following patterns:',
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   fontSize: 15,
                   color: BlushyColors.secondaryText,
                 ),
@@ -90,7 +90,7 @@ class BlushyPatternInsightsSheet extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   color: BlushyColors.text,
@@ -99,7 +99,7 @@ class BlushyPatternInsightsSheet extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 description,
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   fontSize: 14,
                   color: BlushyColors.text,
                 ),

@@ -67,7 +67,7 @@ class BlushyBottomNavigation extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               label,
-              style: GoogleFonts.inter(
+              style: GoogleFonts.poppins(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
                 color: isActive ? BlushyColors.primary : const Color(0xFF9E9A96),

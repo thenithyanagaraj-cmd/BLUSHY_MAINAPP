@@ -60,7 +60,7 @@ class _MyHealthScreenState extends State<MyHealthScreen> {
         ),
         title: Text(
           'My Health Profile',
-          style: GoogleFonts.cormorantGaramond(
+          style: GoogleFonts.poppins(
             fontWeight: FontWeight.bold,
             color: BlushyColors.text,
             fontSize: 24,
@@ -243,7 +243,7 @@ class _MyHealthScreenState extends State<MyHealthScreen> {
                             RegExp(r'([A-Z])'), 
                             (match) => ' ${match.group(1)}'
                           ).toUpperCase(),
-                          style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: BlushyColors.text),
+                          style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: BlushyColors.text),
                         ),
                         value: isSelected,
                         onChanged: (val) {
@@ -282,7 +282,7 @@ class _MyHealthScreenState extends State<MyHealthScreen> {
                       final isSelected = pc.medicalConditions.contains(cond);
                       return CheckboxListTile(
                         activeColor: BlushyColors.primary,
-                        title: Text(cond, style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: BlushyColors.text)),
+                        title: Text(cond, style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: BlushyColors.text)),
                         value: isSelected,
                         onChanged: (val) {
                           final newConds = Set<String>.from(pc.medicalConditions);
@@ -324,7 +324,7 @@ class _MyHealthScreenState extends State<MyHealthScreen> {
                           final med = pc.medications[idx];
                           return ListTile(
                             contentPadding: EdgeInsets.zero,
-                            title: Text(med.name, style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: BlushyColors.text)),
+                            title: Text(med.name, style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: BlushyColors.text)),
                             subtitle: Text(med.notes ?? med.category ?? 'Notes not added'),
                             trailing: IconButton(
                               icon: const Icon(Icons.delete_outline, color: BlushyColors.primary),
@@ -370,8 +370,8 @@ class _MyHealthScreenState extends State<MyHealthScreen> {
                   _buildCard([
                     SwitchListTile(
                       activeColor: BlushyColors.primary,
-                      title: Text('Sia Memory Enabled', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 14, color: BlushyColors.text)),
-                      subtitle: Text('Allow Sia to learn from your interactions over time.', style: GoogleFonts.inter(fontSize: 12)),
+                      title: Text('Sia Memory Enabled', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 14, color: BlushyColors.text)),
+                      subtitle: Text('Allow Sia to learn from your interactions over time.', style: GoogleFonts.poppins(fontSize: 12)),
                       value: pc.preferences.wantsSiaMemory,
                       onChanged: (val) {
                         final newPrefs = UserPreferences(
@@ -475,7 +475,7 @@ class _MyHealthScreenState extends State<MyHealthScreen> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           title: Text(
             "Add Medication / Supplement",
-            style: GoogleFonts.cormorantGaramond(fontWeight: FontWeight.bold, fontSize: 22),
+            style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 22),
           ),
           content: SingleChildScrollView(
             child: Column(
@@ -499,7 +499,7 @@ class _MyHealthScreenState extends State<MyHealthScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context), 
-              child: Text("Cancel", style: GoogleFonts.inter(color: BlushyColors.secondaryText)),
+              child: Text("Cancel", style: GoogleFonts.poppins(color: BlushyColors.secondaryText)),
             ),
             ElevatedButton(
               onPressed: () {
@@ -546,7 +546,7 @@ class _MyHealthScreenState extends State<MyHealthScreen> {
       padding: const EdgeInsets.only(top: 24, bottom: 8, left: 4),
       child: Text(
         title.toUpperCase(),
-        style: GoogleFonts.inter(
+        style: GoogleFonts.poppins(
           fontSize: 11,
           fontWeight: FontWeight.w800,
           color: BlushyColors.secondaryText,
@@ -587,10 +587,10 @@ class _MyHealthScreenState extends State<MyHealthScreen> {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
-      style: GoogleFonts.inter(color: BlushyColors.text),
+      style: GoogleFonts.poppins(color: BlushyColors.text),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: GoogleFonts.inter(color: BlushyColors.secondaryText),
+        labelStyle: GoogleFonts.poppins(color: BlushyColors.secondaryText),
         filled: true,
         fillColor: BlushyColors.background.withOpacity(0.5),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: BlushyColors.border)),
@@ -603,7 +603,7 @@ class _MyHealthScreenState extends State<MyHealthScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: BlushyColors.text)),
+        Text(label, style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: BlushyColors.text)),
         OutlinedButton(
           onPressed: () async {
             final picked = await showDatePicker(
@@ -620,7 +620,7 @@ class _MyHealthScreenState extends State<MyHealthScreen> {
           ),
           child: Text(
             value == null ? 'Select Date' : '${value.year}-${value.month}-${value.day}',
-            style: GoogleFonts.inter(color: BlushyColors.primary, fontWeight: FontWeight.bold),
+            style: GoogleFonts.poppins(color: BlushyColors.primary, fontWeight: FontWeight.bold),
           ),
         )
       ],
@@ -631,7 +631,7 @@ class _MyHealthScreenState extends State<MyHealthScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: BlushyColors.text)),
+        Text(label, style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: BlushyColors.text)),
         DropdownButton<T>(
           value: value,
           underline: const SizedBox.shrink(),
@@ -652,7 +652,7 @@ class _MyHealthScreenState extends State<MyHealthScreen> {
       ),
       child: Text(
         label,
-        style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 14),
+        style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 14),
       ),
     );
   }

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../theme/colors.dart';
 import '../../theme/spacing.dart';
+import '../../core/theme.dart' hide BlushyColors;
 
 class BlushySiaScreen extends StatefulWidget {
   final String? initialQuestion;
@@ -127,7 +128,7 @@ class _BlushySiaScreenState extends State<BlushySiaScreen> with TickerProviderSt
             Expanded(
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16),
+                padding: EdgeInsets.symmetric(horizontal: BlushyTheme.getPagePadding(context), vertical: 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -139,10 +140,11 @@ class _BlushySiaScreenState extends State<BlushySiaScreen> with TickerProviderSt
                     Center(
                       child: Text(
                         'Good evening, Taara.',
-                        style: GoogleFonts.cormorantGaramond(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w700,
+                        style: GoogleFonts.poppins(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w600,
                           color: BlushyColors.text,
+                          height: 1.25,
                         ),
                       ),
                     ),
@@ -158,7 +160,7 @@ class _BlushySiaScreenState extends State<BlushySiaScreen> with TickerProviderSt
                         border: Border.all(color: const Color(0xFFFFD6D6)),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.red.withOpacity(0.01),
+                            color: BlushyColors.danger.withOpacity(0.01),
                             blurRadius: 10,
                             offset: const Offset(0, 4),
                           ),
@@ -169,15 +171,15 @@ class _BlushySiaScreenState extends State<BlushySiaScreen> with TickerProviderSt
                         children: [
                           Row(
                             children: [
-                              const Icon(Icons.auto_awesome_rounded, color: Colors.amber, size: 16),
+                              const Icon(Icons.auto_awesome_rounded, color: BlushyColors.warning, size: 16),
                               const SizedBox(width: 8),
                               Text(
                                 "SIA NOTICED SOMETHING TODAY",
-                                style: GoogleFonts.inter(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w900,
-                                  color: Colors.red.shade900,
-                                  letterSpacing: 1.0,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: BlushyColors.danger,
+                                  letterSpacing: 1.2,
                                 ),
                               ),
                             ],
@@ -185,10 +187,11 @@ class _BlushySiaScreenState extends State<BlushySiaScreen> with TickerProviderSt
                           const SizedBox(height: 12),
                           Text(
                             "I've noticed you've slept almost 90 minutes less than usual this week. Combined with your luteal phase, that could explain today's fatigue.",
-                            style: GoogleFonts.inter(
-                              fontSize: 12.5,
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
                               height: 1.5,
-                              color: Colors.red.shade900,
+                              fontWeight: FontWeight.w500,
+                              color: BlushyColors.danger,
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -204,7 +207,7 @@ class _BlushySiaScreenState extends State<BlushySiaScreen> with TickerProviderSt
                                 ),
                                 child: Text(
                                   "Explain More",
-                                  style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
+                                  style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white),
                                 ),
                               ),
                               const SizedBox(width: 10),
@@ -217,7 +220,7 @@ class _BlushySiaScreenState extends State<BlushySiaScreen> with TickerProviderSt
                                 ),
                                 child: Text(
                                   "Recovery Plan",
-                                  style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF6F42F5)),
+                                  style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF6F42F5)),
                                 ),
                               ),
                             ],
@@ -230,11 +233,11 @@ class _BlushySiaScreenState extends State<BlushySiaScreen> with TickerProviderSt
                     // 4. Redesigned Today's Context Cards Grid (Non-spreadsheet style)
                     Text(
                       "TODAY'S CONTEXT",
-                      style: GoogleFonts.inter(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w900,
-                        color: BlushyColors.secondaryText,
-                        letterSpacing: 1.5,
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: BlushyColors.primary,
+                        letterSpacing: 1.2,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -246,10 +249,10 @@ class _BlushySiaScreenState extends State<BlushySiaScreen> with TickerProviderSt
                       childAspectRatio: 1.5,
                       physics: const NeverScrollableScrollPhysics(),
                       children: [
-                        _buildEditorialContextCard("🌙", "Luteal Phase", "Day 20"),
-                        _buildEditorialContextCard("😴", "Sleep", "5h 42m"),
-                        _buildEditorialContextCard("⚡", "Energy", "Moderate"),
-                        _buildEditorialContextCard("🧠", "Stress", "High"),
+                        _buildEditorialContextCard("", "Luteal Phase", "Day 20"),
+                        _buildEditorialContextCard("", "Sleep", "5h 42m"),
+                        _buildEditorialContextCard("", "Energy", "Moderate"),
+                        _buildEditorialContextCard("", "Stress", "High"),
                       ],
                     ),
                     const SizedBox(height: 24),
@@ -258,11 +261,11 @@ class _BlushySiaScreenState extends State<BlushySiaScreen> with TickerProviderSt
                     if (_messages.isEmpty && !_isThinking) ...[
                       Text(
                         'DYNAMIC CONVERSATION STARTERS',
-                        style: GoogleFonts.inter(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w700,
-                          color: BlushyColors.secondaryText,
-                          letterSpacing: 0.5,
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: BlushyColors.primary,
+                          letterSpacing: 1.2,
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -349,14 +352,14 @@ class _BlushySiaScreenState extends State<BlushySiaScreen> with TickerProviderSt
               ),
               Text(
                 title,
-                style: GoogleFonts.inter(fontSize: 10, color: BlushyColors.secondaryText, fontWeight: FontWeight.w600),
+                style: GoogleFonts.poppins(fontSize: 10, color: BlushyColors.secondaryText, fontWeight: FontWeight.w600),
               ),
             ],
           ),
           const Spacer(),
           Text(
             value,
-            style: GoogleFonts.cormorantGaramond(
+            style: GoogleFonts.poppins(
               fontSize: 18,
               fontWeight: FontWeight.bold,
               color: BlushyColors.text,
@@ -386,12 +389,12 @@ class _BlushySiaScreenState extends State<BlushySiaScreen> with TickerProviderSt
               children: [
                 Text(
                   title,
-                  style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                  style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: BlushyColors.text),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   desc,
-                  style: GoogleFonts.inter(fontSize: 10.5, color: BlushyColors.secondaryText, height: 1.45),
+                  style: GoogleFonts.poppins(fontSize: 10.5, color: BlushyColors.secondaryText, height: 1.45),
                 ),
               ],
             ),
@@ -413,7 +416,7 @@ class _BlushySiaScreenState extends State<BlushySiaScreen> with TickerProviderSt
         ),
         child: Text(
           label,
-          style: GoogleFonts.inter(
+          style: GoogleFonts.poppins(
             fontSize: 11,
             fontWeight: FontWeight.bold,
             color: BlushyColors.text,
@@ -442,7 +445,7 @@ class _BlushySiaScreenState extends State<BlushySiaScreen> with TickerProviderSt
             children: [
               Text(
                 isSia ? 'Sia Companion' : 'You',
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                   color: isSia ? const Color(0xFF6F42F5) : BlushyColors.text,
@@ -451,7 +454,7 @@ class _BlushySiaScreenState extends State<BlushySiaScreen> with TickerProviderSt
               const SizedBox(height: 8),
               Text(
                 msg['text'] ?? '',
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   fontSize: 13,
                   color: BlushyColors.text,
                   height: 1.45,
@@ -482,7 +485,7 @@ class _BlushySiaScreenState extends State<BlushySiaScreen> with TickerProviderSt
           children: [
             Text(
               'Luteal Recovery Action Checklist',
-              style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700),
+              style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 10),
             _buildCheckItem('Log afternoon hydration intake', true),
@@ -497,7 +500,7 @@ class _BlushySiaScreenState extends State<BlushySiaScreen> with TickerProviderSt
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFFEDEEFC),
+          color: BlushyColors.background,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: const Color(0xFF6F42F5).withOpacity(0.15)),
         ),
@@ -516,11 +519,11 @@ class _BlushySiaScreenState extends State<BlushySiaScreen> with TickerProviderSt
                 children: [
                   Text(
                     'Calm Breathing Exercise',
-                    style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF6F42F5)),
+                    style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF6F42F5)),
                   ),
                   Text(
                     'Cycle-stabilizing parasympathetic booster • 5 min',
-                    style: GoogleFonts.inter(fontSize: 10, color: BlushyColors.secondaryText),
+                    style: GoogleFonts.poppins(fontSize: 10, color: BlushyColors.secondaryText),
                   ),
                 ],
               ),
@@ -547,14 +550,14 @@ class _BlushySiaScreenState extends State<BlushySiaScreen> with TickerProviderSt
                 const SizedBox(width: 8),
                 Text(
                   'Community Insights: Fatigue',
-                  style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: BlushyColors.primary),
+                  style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w700, color: BlushyColors.primary),
                 ),
               ],
             ),
             const SizedBox(height: 8),
             Text(
               '4,281 women reported similar symptoms in their late luteal cycles. 78% found relief by increasing iron-rich nutrition.',
-              style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.text, height: 1.4),
+              style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.text, height: 1.4),
             ),
           ],
         ),
@@ -571,14 +574,14 @@ class _BlushySiaScreenState extends State<BlushySiaScreen> with TickerProviderSt
         children: [
           Icon(
             initialChecked ? Icons.check_circle_rounded : Icons.radio_button_off_rounded,
-            color: initialChecked ? Colors.green : BlushyColors.secondaryText,
+            color: initialChecked ? BlushyColors.success : BlushyColors.secondaryText,
             size: 16,
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               label,
-              style: GoogleFonts.inter(
+              style: GoogleFonts.poppins(
                 fontSize: 12,
                 color: initialChecked ? BlushyColors.secondaryText : BlushyColors.text,
                 decoration: initialChecked ? TextDecoration.lineThrough : null,
@@ -613,7 +616,7 @@ class _BlushySiaScreenState extends State<BlushySiaScreen> with TickerProviderSt
               const SizedBox(width: 10),
               Text(
                 'Sia is thinking...',
-                style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.secondaryText),
+                style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.secondaryText),
               ),
             ],
           ),
@@ -663,7 +666,7 @@ class _BlushySiaScreenState extends State<BlushySiaScreen> with TickerProviderSt
             const SizedBox(height: 8),
             Text(
               'Listening to your voice...',
-              style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.secondaryText),
+              style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.secondaryText),
             ),
             const SizedBox(height: 8),
           ],
@@ -685,10 +688,10 @@ class _BlushySiaScreenState extends State<BlushySiaScreen> with TickerProviderSt
                   ),
                   child: TextField(
                     controller: _chatController,
-                    style: GoogleFonts.inter(fontSize: 13, color: BlushyColors.text),
+                    style: GoogleFonts.poppins(fontSize: 13, color: BlushyColors.text),
                     decoration: InputDecoration(
                       hintText: _placeholders[_placeholderIndex],
-                      hintStyle: GoogleFonts.inter(fontSize: 12, color: BlushyColors.secondaryText),
+                      hintStyle: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.secondaryText),
                       border: InputBorder.none,
                       isDense: true,
                       contentPadding: const EdgeInsets.symmetric(vertical: 10),
@@ -781,7 +784,7 @@ class _SiaBreathingOrbState extends State<_SiaBreathingOrb> with SingleTickerPro
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: LinearGradient(
-                  colors: [Color(0xFF8B5CF6), Color(0xFFEC4899)],
+                  colors: [Color(0xFF8B5CF6), BlushyColors.secondary],
                 ),
               ),
             ),

@@ -34,7 +34,7 @@ class BlushySiaMemorySheet extends StatelessWidget {
               const SizedBox(height: 24),
               Text(
                 'Sia Memory & Privacy',
-                style: GoogleFonts.cormorantGaramond(
+                style: GoogleFonts.poppins(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
                   color: BlushyColors.text,
@@ -43,7 +43,7 @@ class BlushySiaMemorySheet extends StatelessWidget {
               const SizedBox(height: 16),
               Text(
                 'Manage what Sia remembers about your conversations and health context. You are always in control of your data.',
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   fontSize: 15,
                   color: BlushyColors.secondaryText,
                 ),
@@ -60,8 +60,8 @@ class BlushySiaMemorySheet extends StatelessWidget {
                   onPressed: () {},
                   child: Text(
                     'Clear Sia Memory',
-                    style: GoogleFonts.inter(
-                      color: BlushyColors.error ?? Colors.red,
+                    style: GoogleFonts.poppins(
+                      color: BlushyColors.error ?? BlushyColors.danger,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -85,7 +85,7 @@ class BlushySiaMemorySheet extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   color: BlushyColors.text,
@@ -94,7 +94,7 @@ class BlushySiaMemorySheet extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 subtitle,
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   fontSize: 13,
                   color: BlushyColors.secondaryText,
                 ),

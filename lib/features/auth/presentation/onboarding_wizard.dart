@@ -541,17 +541,17 @@ class _OnboardingWizardState extends State<OnboardingWizard> with TickerProvider
                   Text(
                     "Your health. Your privacy.",
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.cormorantGaramond(fontSize: 36, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                    style: GoogleFonts.poppins(fontSize: 36, fontWeight: FontWeight.bold, color: BlushyColors.text),
                   ),
                   const SizedBox(height: 14),
                   Text(
                     "Everything you share helps Blushy personalize your wellness companion experience. We use local encryption, we never sell your personal health records, and you are always in complete control.",
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.inter(fontSize: 14, color: BlushyColors.secondaryText, height: 1.5),
+                    style: GoogleFonts.poppins(fontSize: 14, color: BlushyColors.secondaryText, height: 1.5),
                   ),
                   const Spacer(),
                   CheckboxListTile(
-                    title: Text("I agree to the Privacy Policy", style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600)),
+                    title: Text("I agree to the Privacy Policy", style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600)),
                     value: _agreePrivacy,
                     activeColor: BlushyColors.primary,
                     onChanged: (val) {
@@ -561,7 +561,7 @@ class _OnboardingWizardState extends State<OnboardingWizard> with TickerProvider
                     },
                   ),
                   CheckboxListTile(
-                    title: Text("I agree to the Terms of Service", style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600)),
+                    title: Text("I agree to the Terms of Service", style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600)),
                     value: _agreeTerms,
                     activeColor: BlushyColors.primary,
                     onChanged: (val) {
@@ -589,7 +589,7 @@ class _OnboardingWizardState extends State<OnboardingWizard> with TickerProvider
                     ),
                     child: Text(
                       "Continue to Onboarding",
-                      style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                      style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
                     ),
                   ),
                 ],
@@ -609,7 +609,7 @@ class _OnboardingWizardState extends State<OnboardingWizard> with TickerProvider
       children: [
         Text(
           stepLabel.toUpperCase(),
-          style: GoogleFonts.inter(
+          style: GoogleFonts.poppins(
             fontSize: 10,
             fontWeight: FontWeight.w600,
             color: BlushyColors.secondaryText,
@@ -649,7 +649,7 @@ class _OnboardingWizardState extends State<OnboardingWizard> with TickerProvider
         Text(
           title,
           textAlign: TextAlign.center,
-          style: GoogleFonts.cormorantGaramond(
+          style: GoogleFonts.poppins(
             fontSize: 42,
             fontWeight: FontWeight.w500,
             color: BlushyColors.text,
@@ -661,7 +661,7 @@ class _OnboardingWizardState extends State<OnboardingWizard> with TickerProvider
           Text(
             description,
             textAlign: TextAlign.center,
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 15,
               color: BlushyColors.secondaryText,
               height: 1.4,
@@ -769,7 +769,7 @@ class _OnboardingWizardState extends State<OnboardingWizard> with TickerProvider
                           onPressed: _backQuestion,
                           child: Text(
                             "Back",
-                            style: GoogleFonts.inter(
+                            style: GoogleFonts.poppins(
                               fontSize: 13,
                               fontWeight: FontWeight.w500,
                               color: BlushyColors.secondaryText,
@@ -815,7 +815,7 @@ class _OnboardingWizardState extends State<OnboardingWizard> with TickerProvider
                 Text(
                   "Creating your wellness space...",
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.cormorantGaramond(fontSize: 32, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                  style: GoogleFonts.poppins(fontSize: 32, fontWeight: FontWeight.bold, color: BlushyColors.text),
                 ),
                 const SizedBox(height: 36),
                 
@@ -834,7 +834,7 @@ class _OnboardingWizardState extends State<OnboardingWizard> with TickerProvider
                         const SizedBox(width: 14),
                         Text(
                           listItems[idx],
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.poppins(
                             fontSize: 13, 
                             color: isDone ? BlushyColors.text : BlushyColors.secondaryText.withOpacity(0.6),
                             fontWeight: isDone ? FontWeight.w600 : FontWeight.normal
@@ -860,7 +860,7 @@ class _OnboardingWizardState extends State<OnboardingWizard> with TickerProvider
                 Text(
                   "${(_buildingProgress * 100).toInt()}%",
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                  style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                 ),
               ],
             ),
@@ -892,13 +892,13 @@ class _OnboardingWizardState extends State<OnboardingWizard> with TickerProvider
                   Text(
                     "Hi, ${_profile.preferredName}.\nI'm Sia.",
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.cormorantGaramond(fontSize: 42, fontWeight: FontWeight.w300, color: BlushyColors.text, height: 1.1),
+                    style: GoogleFonts.poppins(fontSize: 42, fontWeight: FontWeight.w300, color: BlushyColors.text, height: 1.1),
                   ),
                   const SizedBox(height: 24),
                   Text(
                     "I'll learn alongside you and adapt as your needs change.\n\nSome days I'll help you understand your body. Some days I'll remind you to care for yourself. Some days I'll simply listen.\n\nWelcome to Blushy.",
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.inter(fontSize: 14, color: BlushyColors.secondaryText, height: 1.6),
+                    style: GoogleFonts.poppins(fontSize: 14, color: BlushyColors.secondaryText, height: 1.6),
                   ),
                   const Spacer(),
                   ElevatedButton(
@@ -916,7 +916,7 @@ class _OnboardingWizardState extends State<OnboardingWizard> with TickerProvider
                     ),
                     child: Text(
                       "Start My Journey",
-                      style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                      style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
                     ),
                   ),
                 ],
@@ -956,13 +956,13 @@ class _OnboardingWizardState extends State<OnboardingWizard> with TickerProvider
                   Text(
                     "Your Blushy is Ready",
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.cormorantGaramond(fontSize: 38, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                    style: GoogleFonts.poppins(fontSize: 38, fontWeight: FontWeight.bold, color: BlushyColors.text),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     "We've prepared your personal wellness space.",
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.inter(fontSize: 13, color: BlushyColors.secondaryText),
+                    style: GoogleFonts.poppins(fontSize: 13, color: BlushyColors.secondaryText),
                   ),
                   const SizedBox(height: 36),
                   
@@ -981,11 +981,11 @@ class _OnboardingWizardState extends State<OnboardingWizard> with TickerProvider
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.check, size: 14, color: Colors.green),
+                            const Icon(Icons.check, size: 14, color: BlushyColors.success),
                             const SizedBox(width: 8),
                             Text(
                               card,
-                              style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: BlushyColors.text),
+                              style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w600, color: BlushyColors.text),
                             ),
                           ],
                         ),
@@ -1004,7 +1004,7 @@ class _OnboardingWizardState extends State<OnboardingWizard> with TickerProvider
                     ),
                     child: Text(
                       "Enter Blushy",
-                      style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                      style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
                     ),
                   ),
                 ],
@@ -1044,7 +1044,7 @@ class _OnboardingWizardState extends State<OnboardingWizard> with TickerProvider
               children: [
                 Text(
                   "Why we're asking this",
-                  style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
+                  style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
                 ),
                 Icon(
                   _whyAskingExpanded ? Icons.expand_less : Icons.expand_more,
@@ -1060,7 +1060,7 @@ class _OnboardingWizardState extends State<OnboardingWizard> with TickerProvider
             padding: const EdgeInsets.only(bottom: 12.0, top: 4.0),
             child: Text(
               explanation,
-              style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.secondaryText, height: 1.4),
+              style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.secondaryText, height: 1.4),
             ),
           ),
       ],
@@ -1076,21 +1076,21 @@ class _OnboardingWizardState extends State<OnboardingWizard> with TickerProvider
       children: [
         Text(
           "Let's get introduced",
-          style: GoogleFonts.cormorantGaramond(fontSize: 34, fontWeight: FontWeight.bold, color: BlushyColors.text),
+          style: GoogleFonts.poppins(fontSize: 34, fontWeight: FontWeight.bold, color: BlushyColors.text),
         ),
         const SizedBox(height: 8),
         Text(
           "What name would you like Sia to call you?",
-          style: GoogleFonts.inter(fontSize: 14, color: BlushyColors.secondaryText),
+          style: GoogleFonts.poppins(fontSize: 14, color: BlushyColors.secondaryText),
         ),
         const SizedBox(height: 32),
         TextField(
           controller: _nameController,
           autofocus: true,
-          style: GoogleFonts.inter(fontSize: 18, color: BlushyColors.text),
+          style: GoogleFonts.poppins(fontSize: 18, color: BlushyColors.text),
           decoration: InputDecoration(
             hintText: "Your preferred name",
-            hintStyle: GoogleFonts.inter(color: BlushyColors.secondaryText.withOpacity(0.5)),
+            hintStyle: GoogleFonts.poppins(color: BlushyColors.secondaryText.withOpacity(0.5)),
             border: const UnderlineInputBorder(borderSide: BorderSide(color: BlushyColors.border)),
             focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: BlushyColors.primary, width: 2)),
           ),
@@ -1106,12 +1106,12 @@ class _OnboardingWizardState extends State<OnboardingWizard> with TickerProvider
       children: [
         Text(
           "When is your birthday?",
-          style: GoogleFonts.cormorantGaramond(fontSize: 34, fontWeight: FontWeight.bold, color: BlushyColors.text),
+          style: GoogleFonts.poppins(fontSize: 34, fontWeight: FontWeight.bold, color: BlushyColors.text),
         ),
         const SizedBox(height: 8),
         Text(
           "Knowing your birthday helps customize age-based biology recommendations.",
-          style: GoogleFonts.inter(fontSize: 14, color: BlushyColors.secondaryText),
+          style: GoogleFonts.poppins(fontSize: 14, color: BlushyColors.secondaryText),
         ),
         const SizedBox(height: 32),
         InkWell(
@@ -1153,7 +1153,7 @@ class _OnboardingWizardState extends State<OnboardingWizard> with TickerProvider
                   _profile.dateOfBirth == null 
                       ? "Select your date of birth" 
                       : "${_profile.dateOfBirth!.day}/${_profile.dateOfBirth!.month}/${_profile.dateOfBirth!.year}",
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.poppins(
                     fontSize: 16, 
                     color: _profile.dateOfBirth == null ? BlushyColors.secondaryText : BlushyColors.text
                   ),
@@ -1186,12 +1186,12 @@ class _OnboardingWizardState extends State<OnboardingWizard> with TickerProvider
       children: [
         Text(
           "Where are you today?",
-          style: GoogleFonts.cormorantGaramond(fontSize: 38, fontWeight: FontWeight.w400, color: BlushyColors.text),
+          style: GoogleFonts.poppins(fontSize: 38, fontWeight: FontWeight.w400, color: BlushyColors.text),
         ),
         const SizedBox(height: 8),
         Text(
           "This selection defines the entire branching layout for your onboarding questionnaire.",
-          style: GoogleFonts.inter(fontSize: 14, color: BlushyColors.secondaryText),
+          style: GoogleFonts.poppins(fontSize: 14, color: BlushyColors.secondaryText),
         ),
         const SizedBox(height: 24),
         ...stages.map((stage) {
@@ -1283,12 +1283,12 @@ class _OnboardingWizardState extends State<OnboardingWizard> with TickerProvider
       children: [
         Text(
           "When did your last period begin?",
-          style: GoogleFonts.cormorantGaramond(fontSize: 34, fontWeight: FontWeight.bold, color: BlushyColors.text),
+          style: GoogleFonts.poppins(fontSize: 34, fontWeight: FontWeight.bold, color: BlushyColors.text),
         ),
         const SizedBox(height: 8),
         Text(
           "Used to forecast your upcoming cycle length.",
-          style: GoogleFonts.inter(fontSize: 14, color: BlushyColors.secondaryText),
+          style: GoogleFonts.poppins(fontSize: 14, color: BlushyColors.secondaryText),
         ),
         const SizedBox(height: 24),
         InkWell(
@@ -1319,7 +1319,7 @@ class _OnboardingWizardState extends State<OnboardingWizard> with TickerProvider
                   _profile.lastPeriod == null 
                       ? "Select date" 
                       : "${_profile.lastPeriod!.day}/${_profile.lastPeriod!.month}/${_profile.lastPeriod!.year}",
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.poppins(
                     fontSize: 16, 
                     color: _profile.lastPeriod == null ? BlushyColors.secondaryText : BlushyColors.text
                   ),
@@ -1331,7 +1331,7 @@ class _OnboardingWizardState extends State<OnboardingWizard> with TickerProvider
         ),
         const SizedBox(height: 20),
         CheckboxListTile(
-          title: Text("I don't remember", style: GoogleFonts.inter(fontSize: 14)),
+          title: Text("I don't remember", style: GoogleFonts.poppins(fontSize: 14)),
           value: _profile.answers['last_period_unknown'] == true,
           activeColor: BlushyColors.primary,
           onChanged: (val) {
@@ -1474,12 +1474,12 @@ class _OnboardingWizardState extends State<OnboardingWizard> with TickerProvider
       children: [
         Text(
           "What's your due date?",
-          style: GoogleFonts.cormorantGaramond(fontSize: 34, fontWeight: FontWeight.bold, color: BlushyColors.text),
+          style: GoogleFonts.poppins(fontSize: 34, fontWeight: FontWeight.bold, color: BlushyColors.text),
         ),
         const SizedBox(height: 8),
         Text(
           "Calculates gestational week and baby growth size benchmarks.",
-          style: GoogleFonts.inter(fontSize: 14, color: BlushyColors.secondaryText),
+          style: GoogleFonts.poppins(fontSize: 14, color: BlushyColors.secondaryText),
         ),
         const SizedBox(height: 24),
         InkWell(
@@ -1509,7 +1509,7 @@ class _OnboardingWizardState extends State<OnboardingWizard> with TickerProvider
                   _profile.dueDate == null 
                       ? "Select estimated due date" 
                       : "${_profile.dueDate!.day}/${_profile.dueDate!.month}/${_profile.dueDate!.year}",
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.poppins(
                     fontSize: 16, 
                     color: _profile.dueDate == null ? BlushyColors.secondaryText : BlushyColors.text
                   ),
@@ -1557,12 +1557,12 @@ class _OnboardingWizardState extends State<OnboardingWizard> with TickerProvider
       children: [
         Text(
           "When was your baby born?",
-          style: GoogleFonts.cormorantGaramond(fontSize: 34, fontWeight: FontWeight.bold, color: BlushyColors.text),
+          style: GoogleFonts.poppins(fontSize: 34, fontWeight: FontWeight.bold, color: BlushyColors.text),
         ),
         const SizedBox(height: 8),
         Text(
           "Drives maternal postpartum healing calendars and recovery tracking.",
-          style: GoogleFonts.inter(fontSize: 14, color: BlushyColors.secondaryText),
+          style: GoogleFonts.poppins(fontSize: 14, color: BlushyColors.secondaryText),
         ),
         const SizedBox(height: 24),
         InkWell(
@@ -1592,7 +1592,7 @@ class _OnboardingWizardState extends State<OnboardingWizard> with TickerProvider
                   _profile.babyBirthDate == null 
                       ? "Select baby birth date" 
                       : "${_profile.babyBirthDate!.day}/${_profile.babyBirthDate!.month}/${_profile.babyBirthDate!.year}",
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.poppins(
                     fontSize: 16, 
                     color: _profile.babyBirthDate == null ? BlushyColors.secondaryText : BlushyColors.text
                   ),
@@ -1737,12 +1737,12 @@ class _OnboardingWizardState extends State<OnboardingWizard> with TickerProvider
       children: [
         Text(
           title,
-          style: GoogleFonts.cormorantGaramond(fontSize: 38, fontWeight: FontWeight.w400, color: BlushyColors.text),
+          style: GoogleFonts.poppins(fontSize: 38, fontWeight: FontWeight.w400, color: BlushyColors.text),
         ),
         const SizedBox(height: 8),
         Text(
           subtitle,
-          style: GoogleFonts.inter(fontSize: 14, color: BlushyColors.secondaryText),
+          style: GoogleFonts.poppins(fontSize: 14, color: BlushyColors.secondaryText),
         ),
         const SizedBox(height: 24),
         ...options.map((opt) {
@@ -1772,12 +1772,12 @@ class _OnboardingWizardState extends State<OnboardingWizard> with TickerProvider
       children: [
         Text(
           title,
-          style: GoogleFonts.cormorantGaramond(fontSize: 38, fontWeight: FontWeight.w400, color: BlushyColors.text),
+          style: GoogleFonts.poppins(fontSize: 38, fontWeight: FontWeight.w400, color: BlushyColors.text),
         ),
         const SizedBox(height: 8),
         Text(
           subtitle,
-          style: GoogleFonts.inter(fontSize: 14, color: BlushyColors.secondaryText),
+          style: GoogleFonts.poppins(fontSize: 14, color: BlushyColors.secondaryText),
         ),
         const SizedBox(height: 24),
         ...options.map((opt) {
@@ -1812,12 +1812,12 @@ class _OnboardingWizardState extends State<OnboardingWizard> with TickerProvider
       children: [
         Text(
           title,
-          style: GoogleFonts.cormorantGaramond(fontSize: 38, fontWeight: FontWeight.w400, color: BlushyColors.text),
+          style: GoogleFonts.poppins(fontSize: 38, fontWeight: FontWeight.w400, color: BlushyColors.text),
         ),
         const SizedBox(height: 8),
         Text(
           subtitle,
-          style: GoogleFonts.inter(fontSize: 14, color: BlushyColors.secondaryText),
+          style: GoogleFonts.poppins(fontSize: 14, color: BlushyColors.secondaryText),
         ),
         const SizedBox(height: 24),
         ...options.map((opt) {
@@ -1852,12 +1852,12 @@ class _OnboardingWizardState extends State<OnboardingWizard> with TickerProvider
       children: [
         Text(
           title,
-          style: GoogleFonts.cormorantGaramond(fontSize: 38, fontWeight: FontWeight.w400, color: BlushyColors.text),
+          style: GoogleFonts.poppins(fontSize: 38, fontWeight: FontWeight.w400, color: BlushyColors.text),
         ),
         const SizedBox(height: 8),
         Text(
           subtitle,
-          style: GoogleFonts.inter(fontSize: 14, color: BlushyColors.secondaryText),
+          style: GoogleFonts.poppins(fontSize: 14, color: BlushyColors.secondaryText),
         ),
         const SizedBox(height: 24),
         ...options.map((opt) {
@@ -1943,7 +1943,7 @@ class _ContinueButtonState extends State<_ContinueButton> {
           ),
           child: Text(
             "Continue",
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 14,
               fontWeight: FontWeight.bold,
               color: Colors.white,
@@ -2021,7 +2021,7 @@ class _PremiumSelectionRowState extends State<PremiumSelectionRow> with SingleTi
                     children: [
                       Text(
                         widget.title,
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.poppins(
                           fontSize: 15,
                           fontWeight: widget.isSelected ? FontWeight.w600 : FontWeight.w400,
                           color: widget.isSelected ? BlushyColors.primary : BlushyColors.text,
@@ -2031,7 +2031,7 @@ class _PremiumSelectionRowState extends State<PremiumSelectionRow> with SingleTi
                         const SizedBox(height: 4),
                         Text(
                           widget.desc!,
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.poppins(
                             fontSize: 12,
                             color: BlushyColors.secondaryText,
                           ),

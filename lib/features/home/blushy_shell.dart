@@ -63,7 +63,7 @@ class ComingSoonScreen extends StatelessWidget {
           children: [
             Text(
               title,
-              style: GoogleFonts.cormorantGaramond(
+              style: GoogleFonts.poppins(
                 fontSize: 28,
                 fontWeight: FontWeight.w700,
                 color: BlushyColors.text,
@@ -72,7 +72,7 @@ class ComingSoonScreen extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               'Coming Soon',
-              style: GoogleFonts.inter(
+              style: GoogleFonts.poppins(
                 fontSize: 14,
                 color: BlushyColors.secondaryText,
                 letterSpacing: 0.5,

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../theme/colors.dart';
 import '../../core/state.dart';
+import '../../core/theme.dart' hide BlushyColors;
 
 class BlushyPartnerScreen extends StatefulWidget {
   const BlushyPartnerScreen({super.key});
@@ -154,7 +155,7 @@ class _BlushyPartnerScreenState extends State<BlushyPartnerScreen> {
               children: [
                 if (!isHome && _tabs[_selectedTabIndex] != 'Messenger') ...[
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                    padding: EdgeInsets.symmetric(horizontal: BlushyTheme.getPagePadding(context), vertical: 8.0),
                     child: Row(
                       children: [
                         IconButton(
@@ -167,7 +168,7 @@ class _BlushyPartnerScreenState extends State<BlushyPartnerScreen> {
                         ),
                         Text(
                           _tabs[_selectedTabIndex],
-                          style: GoogleFonts.cormorantGaramond(
+                          style: GoogleFonts.poppins(
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
                             color: BlushyColors.text,
@@ -221,7 +222,7 @@ class _BlushyPartnerScreenState extends State<BlushyPartnerScreen> {
             color: active ? const Color(0xFFFDF2F2) : const Color(0xFFF3EFEA),
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
-              color: active ? Colors.red.shade200 : BlushyColors.border,
+              color: active ? BlushyColors.secondary : BlushyColors.border,
               width: 1,
             ),
           ),
@@ -231,17 +232,17 @@ class _BlushyPartnerScreenState extends State<BlushyPartnerScreen> {
               Icon(
                 active ? Icons.circle : Icons.circle_outlined,
                 size: 14,
-                color: active ? Colors.green : BlushyColors.secondaryText,
+                color: active ? BlushyColors.success : BlushyColors.secondaryText,
               ),
               const SizedBox(width: 8),
-              const Icon(Icons.bolt_rounded, size: 16, color: Colors.orange),
+              const Icon(Icons.bolt_rounded, size: 16, color: BlushyColors.warning),
               const SizedBox(width: 4),
               Text(
                 active ? "Argument Mode ON" : "Argument Mode OFF",
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
-                  color: active ? Colors.red.shade800 : BlushyColors.text,
+                  color: active ? BlushyColors.danger : BlushyColors.text,
                 ),
               ),
             ],
@@ -292,13 +293,13 @@ class _BlushyPartnerScreenState extends State<BlushyPartnerScreen> {
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
+      padding: EdgeInsets.symmetric(horizontal: BlushyTheme.getPagePadding(context), vertical: 12.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'Good Evening, Nithya',
-            style: GoogleFonts.cormorantGaramond(
+            style: GoogleFonts.poppins(
               fontSize: 28,
               fontWeight: FontWeight.w700,
               color: BlushyColors.text,
@@ -306,7 +307,7 @@ class _BlushyPartnerScreenState extends State<BlushyPartnerScreen> {
           ),
           Text(
             'Today is a good day to connect.',
-            style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.secondaryText),
+            style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.secondaryText),
           ),
           const SizedBox(height: 12),
           Container(
@@ -318,12 +319,12 @@ class _BlushyPartnerScreenState extends State<BlushyPartnerScreen> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.auto_awesome_rounded, color: Colors.amber, size: 14),
+                const Icon(Icons.auto_awesome_rounded, color: BlushyColors.warning, size: 14),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     insightText,
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.poppins(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                       color: BlushyColors.text,
@@ -366,7 +367,7 @@ class _BlushyPartnerScreenState extends State<BlushyPartnerScreen> {
                 ),
                 child: Text(
                   _tabs[index],
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.poppins(
                     fontSize: 12,
                     fontWeight: active ? FontWeight.w700 : FontWeight.w500,
                     color: active ? Colors.white : BlushyColors.secondaryText,
@@ -454,7 +455,7 @@ class _BlushyPartnerScreenState extends State<BlushyPartnerScreen> {
                   children: [
                     Text(
                       'Aarav',
-                      style: GoogleFonts.cormorantGaramond(
+                      style: GoogleFonts.poppins(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                         color: BlushyColors.text,
@@ -462,7 +463,7 @@ class _BlushyPartnerScreenState extends State<BlushyPartnerScreen> {
                     ),
                     Text(
                       'Connected for 1 year 4 months • Living Steady',
-                      style: GoogleFonts.inter(fontSize: 10, color: BlushyColors.secondaryText),
+                      style: GoogleFonts.poppins(fontSize: 10, color: BlushyColors.secondaryText),
                     ),
                   ],
                 ),
@@ -480,15 +481,15 @@ class _BlushyPartnerScreenState extends State<BlushyPartnerScreen> {
                   Icon(
                     active ? Icons.circle : Icons.circle_outlined,
                     size: 10,
-                    color: active ? Colors.green : BlushyColors.secondaryText,
+                    color: active ? BlushyColors.success : BlushyColors.secondaryText,
                   ),
                   const SizedBox(width: 8),
                   Text(
                     "Argument Mode",
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.poppins(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: active ? Colors.red.shade800 : BlushyColors.text,
+                      color: active ? BlushyColors.danger : BlushyColors.text,
                     ),
                   ),
                 ],
@@ -509,14 +510,14 @@ class _BlushyPartnerScreenState extends State<BlushyPartnerScreen> {
                    decoration: BoxDecoration(
                      color: active ? const Color(0xFFFDF2F2) : const Color(0xFFFAF6F0),
                      borderRadius: BorderRadius.circular(16),
-                     border: Border.all(color: active ? Colors.red.shade200 : BlushyColors.border),
+                     border: Border.all(color: active ? BlushyColors.secondary : BlushyColors.border),
                    ),
                    child: Text(
                      active ? "ON" : "OFF",
-                     style: GoogleFonts.inter(
+                     style: GoogleFonts.poppins(
                        fontSize: 10,
                        fontWeight: FontWeight.w900,
-                       color: active ? Colors.green : BlushyColors.secondaryText,
+                       color: active ? BlushyColors.success : BlushyColors.secondaryText,
                      ),
                    ),
                  ),
@@ -530,16 +531,16 @@ class _BlushyPartnerScreenState extends State<BlushyPartnerScreen> {
                decoration: BoxDecoration(
                  color: const Color(0xFFFFF9F9),
                  borderRadius: BorderRadius.circular(12),
-                 border: Border.all(color: Colors.red.shade100),
+                 border: Border.all(color: BlushyColors.secondary),
                ),
                child: Row(
                  children: [
-                   Icon(Icons.lock_person_rounded, size: 14, color: Colors.red.shade800),
+                   Icon(Icons.lock_person_rounded, size: 14, color: BlushyColors.danger),
                    const SizedBox(width: 8),
                    Expanded(
                      child: Text(
                        "Argument Mode is ON. Aarav won't receive any new personal insights until you turn it off.",
-                       style: GoogleFonts.inter(fontSize: 10, color: Colors.red.shade800, height: 1.4),
+                       style: GoogleFonts.poppins(fontSize: 10, color: BlushyColors.danger, height: 1.4),
                      ),
                    ),
                  ],
@@ -575,11 +576,11 @@ class _BlushyPartnerScreenState extends State<BlushyPartnerScreen> {
             children: [
               Text(
                 'RELATIONSHIP GARDEN',
-                style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.green.shade800, letterSpacing: 1.5),
+                style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.w900, color: BlushyColors.success, letterSpacing: 1.5),
               ),
               Text(
                 'SEASON 01 • BLOOMING',
-                style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.green.shade800, letterSpacing: 1.0),
+                style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.w900, color: BlushyColors.success, letterSpacing: 1.0),
               ),
             ],
           ),
@@ -587,13 +588,13 @@ class _BlushyPartnerScreenState extends State<BlushyPartnerScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              ...List.generate(_treesCount, (index) => const Text('🌲', style: TextStyle(fontSize: 28))),
+              ...List.generate(_treesCount, (index) => const Text('', style: TextStyle(fontSize: 28))),
               const SizedBox(width: 4),
-              ...List.generate(_flowersCount, (index) => const Text('🌸', style: TextStyle(fontSize: 20))),
+              ...List.generate(_flowersCount, (index) => const Text('', style: TextStyle(fontSize: 20))),
               const SizedBox(width: 4),
               if (_butterfliesCount > 0)
-                ...List.generate(_butterfliesCount, (index) => const Text('🦋', style: TextStyle(fontSize: 16))),
-              if (_hasPond) const Text('💧', style: TextStyle(fontSize: 24)),
+                ...List.generate(_butterfliesCount, (index) => const Text('', style: TextStyle(fontSize: 16))),
+              if (_hasPond) const Text('', style: TextStyle(fontSize: 24)),
             ],
           ),
           const SizedBox(height: 20),
@@ -601,10 +602,10 @@ class _BlushyPartnerScreenState extends State<BlushyPartnerScreen> {
             state.argumentModeActive
                 ? '“Personal insights are currently paused.”'
                 : '“Aarav completed his check-in. Tending to your relationship garden builds healthy mutual rhythms.”',
-            style: GoogleFonts.cormorantGaramond(
+            style: GoogleFonts.poppins(
                fontSize: 18,
                fontStyle: FontStyle.italic,
-               color: Colors.green.shade900,
+               color: BlushyColors.success,
                height: 1.45,
              ),
              textAlign: TextAlign.center,
@@ -621,16 +622,16 @@ class _BlushyPartnerScreenState extends State<BlushyPartnerScreen> {
                  );
                },
                style: OutlinedButton.styleFrom(
-                 side: BorderSide(color: Colors.green.shade800),
+                 side: BorderSide(color: BlushyColors.success),
                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                ),
                child: Row(
                  mainAxisSize: MainAxisSize.min,
                  children: [
-                   Text('Grow Together', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.green.shade800)),
+                   Text('Grow Together', style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.success)),
                    const SizedBox(width: 8),
-                   Icon(Icons.arrow_forward_rounded, size: 12, color: Colors.green.shade800),
+                   Icon(Icons.arrow_forward_rounded, size: 12, color: BlushyColors.success),
                  ],
                ),
              ),
@@ -683,7 +684,7 @@ class _BlushyPartnerScreenState extends State<BlushyPartnerScreen> {
                   const SizedBox(width: 8),
                   Text(
                     act['label'] as String,
-                    style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                    style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.text),
                   ),
                 ],
               ),
@@ -709,7 +710,7 @@ class _BlushyPartnerScreenState extends State<BlushyPartnerScreen> {
         children: [
           Text(
             'Your Timeline',
-            style: GoogleFonts.cormorantGaramond(
+            style: GoogleFonts.poppins(
               fontSize: 22,
               fontWeight: FontWeight.bold,
               color: BlushyColors.text,
@@ -742,12 +743,12 @@ class _BlushyPartnerScreenState extends State<BlushyPartnerScreen> {
                       children: [
                         Text(
                           evt['title'] as String,
-                          style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                          style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: BlushyColors.text),
                         ),
                         const SizedBox(height: 3),
                         Text(
                           evt['time'] as String,
-                          style: GoogleFonts.inter(fontSize: 10, color: BlushyColors.secondaryText),
+                          style: GoogleFonts.poppins(fontSize: 10, color: BlushyColors.secondaryText),
                         ),
                       ],
                     ),
@@ -775,7 +776,7 @@ class _BlushyPartnerScreenState extends State<BlushyPartnerScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Text(
             'Recent Moments',
-            style: GoogleFonts.cormorantGaramond(
+            style: GoogleFonts.poppins(
               fontSize: 22,
               fontWeight: FontWeight.bold,
               color: BlushyColors.text,
@@ -812,12 +813,12 @@ class _BlushyPartnerScreenState extends State<BlushyPartnerScreen> {
                     const SizedBox(height: 14),
                     Text(
                       mom['title'] as String,
-                      style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                      style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: BlushyColors.text),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       mom['desc'] as String,
-                      style: GoogleFonts.inter(fontSize: 10, color: BlushyColors.secondaryText),
+                      style: GoogleFonts.poppins(fontSize: 10, color: BlushyColors.secondaryText),
                     ),
                   ],
                 ),
@@ -858,7 +859,7 @@ class _BlushyPartnerScreenState extends State<BlushyPartnerScreen> {
               CircleAvatar(
                 backgroundColor: BlushyColors.primary.withOpacity(0.1),
                 radius: 18,
-                child: Text('A', style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: BlushyColors.primary)),
+                child: Text('A', style: GoogleFonts.poppins(fontWeight: FontWeight.w700, color: BlushyColors.primary)),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -867,11 +868,11 @@ class _BlushyPartnerScreenState extends State<BlushyPartnerScreen> {
                   children: [
                     Text(
                       'Aarav',
-                      style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700),
+                      style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w700),
                     ),
                     Text(
                       'Active 5m ago',
-                      style: GoogleFonts.inter(fontSize: 9, color: Colors.green),
+                      style: GoogleFonts.poppins(fontSize: 9, color: BlushyColors.success),
                     ),
                   ],
                 ),
@@ -941,7 +942,7 @@ class _BlushyPartnerScreenState extends State<BlushyPartnerScreen> {
                       Expanded(
                         child: TextField(
                           controller: _msgController,
-                          style: GoogleFonts.inter(fontSize: 13),
+                          style: GoogleFonts.poppins(fontSize: 13),
                           decoration: const InputDecoration(
                             hintText: 'Talk to Aarav...',
                             border: InputBorder.none,
@@ -949,7 +950,7 @@ class _BlushyPartnerScreenState extends State<BlushyPartnerScreen> {
                           ),
                         ),
                       ),
-                      const Icon(Icons.sentiment_satisfied_alt_rounded, color: Colors.grey, size: 20),
+                      const Icon(Icons.sentiment_satisfied_alt_rounded, color: BlushyColors.disabled, size: 20),
                     ],
                   ),
                 ),
@@ -985,23 +986,23 @@ class _BlushyPartnerScreenState extends State<BlushyPartnerScreen> {
           children: [
             Row(
               children: [
-                const Icon(Icons.auto_awesome_rounded, color: Colors.amber, size: 14),
+                const Icon(Icons.auto_awesome_rounded, color: BlushyColors.warning, size: 14),
                 const SizedBox(width: 8),
                 Text(
                   msg['title'] ?? '',
-                  style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.amber.shade900),
+                  style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w700, color: BlushyColors.warning),
                 ),
               ],
             ),
             const SizedBox(height: 8),
             Text(
               msg['subtitle'] ?? '',
-              style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600),
+              style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 4),
             Text(
               msg['text'] ?? '',
-              style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.secondaryText),
+              style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.secondaryText),
             ),
             const SizedBox(height: 12),
             GestureDetector(
@@ -1020,7 +1021,7 @@ class _BlushyPartnerScreenState extends State<BlushyPartnerScreen> {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 alignment: Alignment.center,
-                child: Text('Complete Check-in', style: GoogleFonts.inter(fontSize: 11, color: Colors.white, fontWeight: FontWeight.w700)),
+                child: Text('Complete Check-in', style: GoogleFonts.poppins(fontSize: 11, color: Colors.white, fontWeight: FontWeight.w700)),
               ),
             ),
           ],
@@ -1041,7 +1042,7 @@ class _BlushyPartnerScreenState extends State<BlushyPartnerScreen> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
-              color: isMe ? const Color(0xFFEFE8FC) : Colors.white,
+              color: isMe ? BlushyColors.border : Colors.white,
               borderRadius: BorderRadius.circular(18),
               border: isMe ? null : Border.all(color: BlushyColors.border),
             ),
@@ -1064,14 +1065,14 @@ class _BlushyPartnerScreenState extends State<BlushyPartnerScreen> {
                       const SizedBox(width: 8),
                       Text(
                         msg['duration'] ?? '',
-                        style: GoogleFonts.inter(fontSize: 10, color: BlushyColors.secondaryText),
+                        style: GoogleFonts.poppins(fontSize: 10, color: BlushyColors.secondaryText),
                       ),
                     ],
                   ),
                 ] else ...[
                   Text(
                     msg['text'] ?? '',
-                    style: GoogleFonts.inter(fontSize: 13, color: BlushyColors.text),
+                    style: GoogleFonts.poppins(fontSize: 13, color: BlushyColors.text),
                   ),
                 ],
               ],
@@ -1100,7 +1101,7 @@ class _BlushyPartnerScreenState extends State<BlushyPartnerScreen> {
             children: [
               Text(
                 'AI Communication Hub',
-                style: GoogleFonts.cormorantGaramond(fontSize: 18, fontWeight: FontWeight.w700),
+                style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 12),
               _buildOverlayActionItem('Rewrite Kindly', Icons.auto_awesome_rounded, () {
@@ -1132,7 +1133,7 @@ class _BlushyPartnerScreenState extends State<BlushyPartnerScreen> {
   Widget _buildOverlayActionItem(String label, IconData icon, VoidCallback onTap) {
     return ListTile(
       leading: Icon(icon, color: BlushyColors.primary, size: 18),
-      title: Text(label, style: GoogleFonts.inter(fontSize: 12)),
+      title: Text(label, style: GoogleFonts.poppins(fontSize: 12)),
       onTap: onTap,
     );
   }
@@ -1188,7 +1189,7 @@ class _BlushyPartnerScreenState extends State<BlushyPartnerScreen> {
             child: Icon(icon, color: BlushyColors.primary, size: 18),
           ),
           const SizedBox(height: 6),
-          Text(label, style: GoogleFonts.inter(fontSize: 10, color: BlushyColors.text)),
+          Text(label, style: GoogleFonts.poppins(fontSize: 10, color: BlushyColors.text)),
         ],
       ),
     );
@@ -1202,7 +1203,7 @@ class _BlushyPartnerScreenState extends State<BlushyPartnerScreen> {
       children: [
         Text(
           'SHARED RELATIONSHIP ACTIVITIES',
-          style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w700, color: BlushyColors.secondaryText),
+          style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.w700, color: BlushyColors.secondaryText),
         ),
         const SizedBox(height: 14),
         _buildActivityCard('Daily Gratitude Challenge', 'Encourages genuine positive communication log'),
@@ -1232,11 +1233,11 @@ class _BlushyPartnerScreenState extends State<BlushyPartnerScreen> {
               children: [
                 Text(
                   title,
-                  style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700),
+                  style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w700),
                 ),
                 Text(
                   sub,
-                  style: GoogleFonts.inter(fontSize: 10, color: BlushyColors.secondaryText),
+                  style: GoogleFonts.poppins(fontSize: 10, color: BlushyColors.secondaryText),
                 ),
               ],
             ),
@@ -1263,11 +1264,11 @@ class _BlushyPartnerScreenState extends State<BlushyPartnerScreen> {
             children: [
               Text(
                 title,
-                style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700),
+                style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w700),
               ),
               Text(
                 sub,
-                style: GoogleFonts.inter(fontSize: 10, color: BlushyColors.secondaryText),
+                style: GoogleFonts.poppins(fontSize: 10, color: BlushyColors.secondaryText),
               ),
             ],
           ),
@@ -1303,7 +1304,7 @@ class _BlushyPartnerScreenState extends State<BlushyPartnerScreen> {
           alignment: Alignment.center,
           child: Text(
             'Scrapbook is building over time as you complete activities.',
-            style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.secondaryText),
+            style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.secondaryText),
           ),
         ),
       ],
@@ -1328,14 +1329,14 @@ class _BlushyPartnerScreenState extends State<BlushyPartnerScreen> {
             children: [
               Text(
                 'SIA RELATIONSHIP ADVICE',
-                style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w700, color: const Color(0xFF6F42F5)),
+                style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.w700, color: const Color(0xFF6F42F5)),
               ),
               const SizedBox(height: 10),
               Text(
                 state.argumentModeActive
                     ? '“Your partner has chosen not to share personal insights right now.”'
                     : '“Aarav completed a check-in yesterday. I suggest planning a simple post-dinner walk to connect in a calm luteal phase environment.”',
-                style: GoogleFonts.inter(fontSize: 12, height: 1.45),
+                style: GoogleFonts.poppins(fontSize: 12, height: 1.45),
               ),
             ],
           ),
@@ -1364,7 +1365,7 @@ class _BlushyPartnerScreenState extends State<BlushyPartnerScreen> {
         onPressed: _onFloatingActionTap,
         label: Text(
           _getFloatingActionText(),
-          style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white),
+          style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white),
         ),
         icon: Icon(_getFloatingActionIcon(), color: Colors.white, size: 16),
       ),

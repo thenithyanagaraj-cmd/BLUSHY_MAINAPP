@@ -40,7 +40,7 @@ class _AuthScreenState extends State<AuthScreen> {
               Text(
                 'Welcome to Blushy',
                 textAlign: TextAlign.center,
-                style: GoogleFonts.cormorantGaramond(
+                style: GoogleFonts.poppins(
                   fontSize: 36,
                   fontWeight: FontWeight.bold,
                   color: BlushyColors.text,
@@ -51,7 +51,7 @@ class _AuthScreenState extends State<AuthScreen> {
               Text(
                 'A space to understand your body, your wellbeing, and yourself.',
                 textAlign: TextAlign.center,
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   fontSize: 16,
                   color: BlushyColors.secondaryText,
                   height: 1.5,
@@ -85,7 +85,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 children: [
                   Text(
                     'Already have an account? ',
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.poppins(
                       color: BlushyColors.secondaryText,
                       fontSize: 14,
                     ),
@@ -98,7 +98,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     },
                     child: Text(
                       'Log in',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.poppins(
                         color: BlushyColors.primary,
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
@@ -111,7 +111,7 @@ class _AuthScreenState extends State<AuthScreen> {
               Text(
                 'By continuing, you agree to our Terms and Privacy Policy.',
                 textAlign: TextAlign.center,
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   fontSize: 11,
                   color: BlushyColors.secondaryText.withOpacity(0.8),
                 ),
@@ -152,7 +152,7 @@ class _AuthScreenState extends State<AuthScreen> {
           const SizedBox(width: 12),
           Text(
             label,
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.w600,
             ),

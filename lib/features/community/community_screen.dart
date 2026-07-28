@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../theme/colors.dart';
+import '../../core/theme.dart' hide BlushyColors;
 
 class BlushyCommunityScreen extends StatefulWidget {
   const BlushyCommunityScreen({super.key});
@@ -88,7 +89,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
 
   Widget _buildAISearchBar() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+      padding: EdgeInsets.symmetric(horizontal: BlushyTheme.getPagePadding(context), vertical: 16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -112,10 +113,10 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
                         _showSearchOverview = val.isNotEmpty;
                       });
                     },
-                    style: GoogleFonts.inter(fontSize: 14, color: BlushyColors.text),
+                    style: GoogleFonts.poppins(fontSize: 14, color: BlushyColors.text),
                     decoration: InputDecoration(
                       hintText: 'Ask naturally: \"Why am I exhausted?\"',
-                      hintStyle: GoogleFonts.inter(fontSize: 13, color: BlushyColors.secondaryText),
+                      hintStyle: GoogleFonts.poppins(fontSize: 13, color: BlushyColors.secondaryText),
                       border: InputBorder.none,
                       isDense: true,
                       contentPadding: const EdgeInsets.symmetric(vertical: 14),
@@ -173,7 +174,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
         ),
         child: Text(
           query,
-          style: GoogleFonts.inter(
+          style: GoogleFonts.poppins(
             fontSize: 11,
             color: BlushyColors.secondaryText,
             fontWeight: FontWeight.w500,
@@ -185,7 +186,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
 
   Widget _buildAISearchOverview() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+      padding: EdgeInsets.symmetric(horizontal: BlushyTheme.getPagePadding(context), vertical: 8.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -205,7 +206,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
                     const SizedBox(width: 8),
                     Text(
                       'SIA SEARCHED 8,462 ANONYMOUS EXPERIENCES',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.poppins(
                         fontSize: 9,
                         fontWeight: FontWeight.w700,
                         color: BlushyColors.primary,
@@ -221,7 +222,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
                   children: [
                     Text(
                       '72% ',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.poppins(
                         fontSize: 22,
                         fontWeight: FontWeight.w800,
                         color: BlushyColors.text,
@@ -230,7 +231,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
                     Expanded(
                       child: Text(
                         'of women experienced similar symptoms',
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.poppins(
                           fontSize: 12,
                           color: BlushyColors.text,
                         ),
@@ -241,7 +242,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
                 const SizedBox(height: 6),
                 Text(
                   'Most common during: Luteal Phase',
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.poppins(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                     color: const Color(0xFF6F42F5),
@@ -252,7 +253,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
                 // Coping strategies list
                 Text(
                   'Most Common Coping Advice:',
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.poppins(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                     color: BlushyColors.text,
@@ -266,7 +267,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
                 const SizedBox(height: 12),
                 Text(
                   'Doctor Insight:',
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.poppins(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
                     color: BlushyColors.secondaryText,
@@ -274,7 +275,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
                 ),
                 Text(
                   'Temporary progesterone fluctuations often elevate core temperature and lower energy. These are normal biological patterns.',
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.poppins(
                     fontSize: 12,
                     color: BlushyColors.secondaryText,
                     height: 1.4,
@@ -286,7 +287,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
           const SizedBox(height: 24),
           Text(
             'Recommended Reading',
-            style: GoogleFonts.cormorantGaramond(
+            style: GoogleFonts.poppins(
               fontSize: 20,
               fontWeight: FontWeight.w700,
               color: BlushyColors.text,
@@ -316,7 +317,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
           Expanded(
             child: Text(
               text,
-              style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.text),
+              style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.text),
             ),
           ),
         ],
@@ -326,7 +327,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
 
   Widget _buildVoicePostingCTA() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+      padding: EdgeInsets.symmetric(horizontal: BlushyTheme.getPagePadding(context), vertical: 8.0),
       child: GestureDetector(
         onTap: () {
           setState(() {
@@ -361,7 +362,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
                   children: [
                     Text(
                       'Tell Your Story',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.poppins(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                         color: BlushyColors.text,
@@ -370,7 +371,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
                     const SizedBox(height: 2),
                     Text(
                       'Speak naturally. Sia formats your authentic voice.',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.poppins(
                         fontSize: 11,
                         color: BlushyColors.secondaryText,
                       ),
@@ -411,7 +412,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
 
   Widget _buildPatternsAcrossWomenCard() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
+      padding: EdgeInsets.symmetric(horizontal: BlushyTheme.getPagePadding(context), vertical: 12.0),
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
@@ -428,7 +429,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
                 const SizedBox(width: 8),
                 Text(
                   'Pattern Across Women',
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.poppins(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
                     color: const Color(0xFFB38600),
@@ -440,7 +441,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
             const SizedBox(height: 12),
             Text(
               'Among women with similar cycle length, age, and sleep habits:',
-              style: GoogleFonts.inter(
+              style: GoogleFonts.poppins(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
                 color: BlushyColors.text,
@@ -467,7 +468,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
           Expanded(
             child: Text(
               text,
-              style: GoogleFonts.inter(
+              style: GoogleFonts.poppins(
                 fontSize: 12,
                 color: BlushyColors.text,
                 height: 1.4,
@@ -481,7 +482,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
 
   Widget _buildNavigationTabs() {
     return Padding(
-      padding: const EdgeInsets.only(left: 24.0, top: 12.0),
+      padding: EdgeInsets.only(left: BlushyTheme.getPagePadding(context), top: 12.0),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
@@ -517,7 +518,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
         ),
         child: Text(
           label,
-          style: GoogleFonts.inter(
+          style: GoogleFonts.poppins(
             fontSize: 12,
             fontWeight: active ? FontWeight.w700 : FontWeight.w500,
             color: active ? Colors.white : BlushyColors.secondaryText,
@@ -529,7 +530,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
 
   Widget _buildCommunityFeed() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+      padding: EdgeInsets.symmetric(horizontal: BlushyTheme.getPagePadding(context)),
       child: Column(
         children: [
           if (_activeTab == 'All' || _activeTab == 'Questions') ...[
@@ -592,14 +593,14 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
                   _buildWomenLikeYouTag('Working Professional'),
                 ],
               ),
-              const Icon(Icons.verified_outlined, size: 14, color: Colors.green),
+              const Icon(Icons.verified_outlined, size: 14, color: BlushyColors.success),
             ],
           ),
           const SizedBox(height: 14),
 
           Text(
             question,
-            style: GoogleFonts.cormorantGaramond(
+            style: GoogleFonts.poppins(
               fontSize: 20,
               fontWeight: FontWeight.w700,
               color: BlushyColors.text,
@@ -624,7 +625,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
                     const SizedBox(width: 6),
                     Text(
                       'AI Quick Summary',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.poppins(
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
                         color: BlushyColors.primary,
@@ -635,7 +636,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
                 const SizedBox(height: 8),
                 Text(
                   '$respondentsCount women reported similar experiences. Copy strategies suggest hydration and tracking symptoms.',
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.poppins(
                     fontSize: 12,
                     color: BlushyColors.text,
                     height: 1.4,
@@ -673,7 +674,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
                   const SizedBox(width: 8),
                   Text(
                     'Ask Sia About This',
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.poppins(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
                       color: const Color(0xFF6F42F5),
@@ -714,7 +715,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
       ),
       child: Text(
         text,
-        style: GoogleFonts.inter(
+        style: GoogleFonts.poppins(
           fontSize: 9,
           fontWeight: FontWeight.w600,
           color: BlushyColors.secondaryText,
@@ -731,11 +732,11 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
         children: [
           Text(
             label,
-            style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.secondaryText),
+            style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.secondaryText),
           ),
           Text(
             value,
-            style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: BlushyColors.text),
+            style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w700, color: BlushyColors.text),
           ),
         ],
       ),
@@ -762,7 +763,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
             children: [
               Text(
                 'STORY TIMELINE • JOURNAL',
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   fontSize: 9,
                   fontWeight: FontWeight.w700,
                   color: BlushyColors.primary,
@@ -775,7 +776,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
           const SizedBox(height: 12),
           Text(
             title,
-            style: GoogleFonts.cormorantGaramond(
+            style: GoogleFonts.poppins(
               fontSize: 22,
               fontWeight: FontWeight.w700,
               color: BlushyColors.text,
@@ -785,7 +786,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
           const SizedBox(height: 4),
           Text(
             'Logged anonymously by a $author',
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 11,
               color: BlushyColors.secondaryText,
             ),
@@ -822,7 +823,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
                       children: [
                         Text(
                           stop.day,
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.poppins(
                             fontSize: 10,
                             fontWeight: FontWeight.w700,
                             color: BlushyColors.primary,
@@ -830,7 +831,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
                         ),
                         Text(
                           stop.content,
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.poppins(
                             fontSize: 12,
                             color: BlushyColors.text,
                             height: 1.3,
@@ -864,7 +865,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
                   const SizedBox(width: 8),
                   Text(
                     'Ask Sia About This Journey',
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.poppins(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
                       color: const Color(0xFF6F42F5),
@@ -915,7 +916,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
         children: [
           Text(
             categoryTag,
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 9,
               fontWeight: FontWeight.w700,
               color: BlushyColors.primary,
@@ -925,7 +926,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
           const SizedBox(height: 12),
           Text(
             title,
-            style: GoogleFonts.cormorantGaramond(
+            style: GoogleFonts.poppins(
               fontSize: 20,
               fontWeight: FontWeight.w700,
               color: BlushyColors.text,
@@ -935,7 +936,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
           const SizedBox(height: 8),
           Text(
             excerpt,
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 12,
               color: BlushyColors.secondaryText,
               height: 1.45,
@@ -947,7 +948,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
             children: [
               Text(
                 '$author • $readTime',
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   fontSize: 10,
                   color: BlushyColors.secondaryText,
                 ),
@@ -981,7 +982,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
           const SizedBox(width: 6),
           Text(
             label,
-            style: GoogleFonts.inter(
+            style: GoogleFonts.poppins(
               fontSize: 11,
               fontWeight: FontWeight.w500,
               color: BlushyColors.secondaryText,
@@ -1013,7 +1014,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
                 children: [
                   Text(
                     'Voice Story',
-                    style: GoogleFonts.cormorantGaramond(
+                    style: GoogleFonts.poppins(
                       fontSize: 22,
                       fontWeight: FontWeight.w700,
                       color: BlushyColors.text,
@@ -1039,7 +1040,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
                 const SizedBox(height: 20),
                 Text(
                   'Converting speech to text...',
-                  style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.secondaryText),
+                  style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.secondaryText),
                 ),
               ] else if (_voiceStep == 1) ...[
                 const SizedBox(
@@ -1050,12 +1051,12 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
                 const SizedBox(height: 16),
                 Text(
                   'Removing filler words & fixing grammar...',
-                  style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.secondaryText),
+                  style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.secondaryText),
                 ),
                 const SizedBox(height: 12),
                 Text(
                   _voiceProcessedText,
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.poppins(
                     fontSize: 13,
                     fontStyle: FontStyle.italic,
                     color: BlushyColors.secondaryText,
@@ -1065,7 +1066,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
               ] else ...[
                 Text(
                   'Sia AI Structured Post',
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.poppins(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
                     color: BlushyColors.primary,
@@ -1074,7 +1075,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
                 const SizedBox(height: 12),
                 Text(
                   _voiceTitle,
-                  style: GoogleFonts.cormorantGaramond(
+                  style: GoogleFonts.poppins(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
                     color: BlushyColors.text,
@@ -1084,7 +1085,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
                 const SizedBox(height: 8),
                 Text(
                   _voiceProcessedText,
-                  style: GoogleFonts.inter(fontSize: 13, color: BlushyColors.text),
+                  style: GoogleFonts.poppins(fontSize: 13, color: BlushyColors.text),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 12),
@@ -1118,7 +1119,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
                     alignment: Alignment.center,
                     child: Text(
                       'Approve & Publish',
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.poppins(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
@@ -1156,7 +1157,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
                 children: [
                   Text(
                     'Save to Collection',
-                    style: GoogleFonts.cormorantGaramond(
+                    style: GoogleFonts.poppins(
                       fontSize: 22,
                       fontWeight: FontWeight.w700,
                       color: BlushyColors.text,
@@ -1176,7 +1177,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
               Column(
                 children: _collections.map((col) {
                   return ListTile(
-                    title: Text(col, style: GoogleFonts.inter(fontSize: 13)),
+                    title: Text(col, style: GoogleFonts.poppins(fontSize: 13)),
                     trailing: _selectedCollection == col
                         ? const Icon(Icons.check_rounded, color: BlushyColors.primary)
                         : null,
@@ -1221,7 +1222,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
                 children: [
                   Text(
                     'Sia AI Companion',
-                    style: GoogleFonts.cormorantGaramond(
+                    style: GoogleFonts.poppins(
                       fontSize: 22,
                       fontWeight: FontWeight.w700,
                       color: BlushyColors.text,
@@ -1240,7 +1241,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
               const SizedBox(height: 16),
               Text(
                 'This discussion is highly relevant to you because:',
-                style: GoogleFonts.inter(
+                style: GoogleFonts.poppins(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                   color: BlushyColors.text,
@@ -1270,7 +1271,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
                   alignment: Alignment.center,
                   child: Text(
                     'Get Personalized Explanation',
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.poppins(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                       color: Colors.white,
@@ -1296,7 +1297,7 @@ class _BlushyCommunityScreenState extends State<BlushyCommunityScreen> with Tick
           Expanded(
             child: Text(
               text,
-              style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.text, height: 1.3),
+              style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.text, height: 1.3),
             ),
           ),
         ],

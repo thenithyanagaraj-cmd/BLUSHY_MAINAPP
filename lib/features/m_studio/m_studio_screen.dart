@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../theme/colors.dart';
+import '../../core/theme.dart' hide BlushyColors;
 
 class BlushyMStudioScreen extends StatefulWidget {
   const BlushyMStudioScreen({super.key});
@@ -140,7 +141,7 @@ class _BlushyMStudioScreenState extends State<BlushyMStudioScreen> with TickerPr
                 Expanded(
                   child: SingleChildScrollView(
                     physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+                    padding: EdgeInsets.symmetric(horizontal: BlushyTheme.getPagePadding(context), vertical: 16.0),
                     child: AnimatedSwitcher(
                       duration: const Duration(milliseconds: 300),
                       transitionBuilder: (child, anim) => FadeTransition(
@@ -176,19 +177,21 @@ class _BlushyMStudioScreenState extends State<BlushyMStudioScreen> with TickerPr
         children: [
           Text(
             'Good Evening, Nithya',
-            style: GoogleFonts.cormorantGaramond(
-              fontSize: 28,
-              fontWeight: FontWeight.w700,
+            style: GoogleFonts.poppins(
+              fontSize: 24,
+              fontWeight: FontWeight.w600,
               color: BlushyColors.text,
+              height: 1.25,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             contextMsg,
-            style: GoogleFonts.inter(
-              fontSize: 12,
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
               color: BlushyColors.secondaryText,
-              letterSpacing: 0.2,
+              height: 1.5,
             ),
           ),
         ],
@@ -226,7 +229,7 @@ class _BlushyMStudioScreenState extends State<BlushyMStudioScreen> with TickerPr
                 ),
                 child: Text(
                   _tabs[index],
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.poppins(
                     fontSize: 12,
                     fontWeight: active ? FontWeight.w700 : FontWeight.w500,
                     color: active ? Colors.white : BlushyColors.secondaryText,
@@ -282,7 +285,7 @@ class _BlushyMStudioScreenState extends State<BlushyMStudioScreen> with TickerPr
         
         Text(
           'SUGGESTED PROMPTS',
-          style: GoogleFonts.inter(
+          style: GoogleFonts.poppins(
             fontSize: 9,
             fontWeight: FontWeight.w700,
             color: BlushyColors.secondaryText,
@@ -296,7 +299,7 @@ class _BlushyMStudioScreenState extends State<BlushyMStudioScreen> with TickerPr
         const SizedBox(height: 20),
         Text(
           'TODAY\'S AI REFLECTION',
-          style: GoogleFonts.inter(
+          style: GoogleFonts.poppins(
             fontSize: 9,
             fontWeight: FontWeight.w700,
             color: BlushyColors.primary,
@@ -313,7 +316,7 @@ class _BlushyMStudioScreenState extends State<BlushyMStudioScreen> with TickerPr
           ),
           child: Text(
             'Your logs indicate a 15% increase in rest cycles. Estrogen levels are stabilizing.',
-            style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.secondaryText, height: 1.4),
+            style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.secondaryText, height: 1.4),
           ),
         ),
       ],
@@ -326,12 +329,12 @@ class _BlushyMStudioScreenState extends State<BlushyMStudioScreen> with TickerPr
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.auto_awesome_rounded, color: Colors.amber, size: 14),
+          const Icon(Icons.auto_awesome_rounded, color: BlushyColors.warning, size: 14),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               text,
-              style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.text, height: 1.35),
+              style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.text, height: 1.35),
             ),
           ),
         ],
@@ -356,7 +359,7 @@ class _BlushyMStudioScreenState extends State<BlushyMStudioScreen> with TickerPr
       children: [
         Text(
           'CHOOSE TEMPLATE',
-          style: GoogleFonts.inter(
+          style: GoogleFonts.poppins(
             fontSize: 9,
             fontWeight: FontWeight.w700,
             color: BlushyColors.secondaryText,
@@ -396,14 +399,14 @@ class _BlushyMStudioScreenState extends State<BlushyMStudioScreen> with TickerPr
                           color: const Color(0xFFF9F7F3),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Icon(Icons.description_outlined, color: Colors.grey, size: 28),
+                        child: const Icon(Icons.description_outlined, color: BlushyColors.disabled, size: 28),
                       ),
                     ),
                     Padding(
                       padding: const EdgeInsets.only(bottom: 12.0),
                       child: Text(
                         temp,
-                        style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700),
+                        style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w700),
                       ),
                     ),
                   ],
@@ -438,18 +441,18 @@ class _BlushyMStudioScreenState extends State<BlushyMStudioScreen> with TickerPr
                 children: [
                   Text(
                     'RECOVERY SCORE',
-                    style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w700, color: BlushyColors.primary),
+                    style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: BlushyColors.primary, letterSpacing: 1.2),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     'Optimal Calm State',
-                    style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600),
+                    style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600),
                   ),
                 ],
               ),
               Text(
                 '84%',
-                style: GoogleFonts.cormorantGaramond(fontSize: 32, fontWeight: FontWeight.w700, color: BlushyColors.primary),
+                style: GoogleFonts.poppins(fontSize: 32, fontWeight: FontWeight.w600, color: BlushyColors.primary, height: 1.1),
               ),
             ],
           ),
@@ -469,15 +472,15 @@ class _BlushyMStudioScreenState extends State<BlushyMStudioScreen> with TickerPr
                 if (_recoveryPhase == 0) ...[
                   const CircularProgressIndicator(color: BlushyColors.primary),
                   const SizedBox(height: 12),
-                  Text('Enabling Do Not Disturb...', style: GoogleFonts.inter(fontSize: 12)),
+                  Text('Enabling Do Not Disturb...', style: GoogleFonts.poppins(fontSize: 12)),
                 ] else if (_recoveryPhase == 1) ...[
-                  const Icon(Icons.music_note_rounded, color: Colors.green, size: 28),
+                  const Icon(Icons.music_note_rounded, color: BlushyColors.success, size: 28),
                   const SizedBox(height: 12),
-                  Text('Connecting spotify calm loops playlist...', style: GoogleFonts.inter(fontSize: 12)),
+                  Text('Connecting spotify calm loops playlist...', style: GoogleFonts.poppins(fontSize: 12)),
                 ] else ...[
                   Text(
                     '“You are stronger than this temporary wave.”',
-                    style: GoogleFonts.cormorantGaramond(fontSize: 16, fontStyle: FontStyle.italic),
+                    style: GoogleFonts.poppins(fontSize: 16, fontStyle: FontStyle.italic),
                   ),
                   const SizedBox(height: 14),
                   ElevatedButton(
@@ -523,7 +526,7 @@ class _BlushyMStudioScreenState extends State<BlushyMStudioScreen> with TickerPr
       children: [
         Text(
           'RECOMMENDED FOR YOU',
-          style: GoogleFonts.inter(
+          style: GoogleFonts.poppins(
             fontSize: 9,
             fontWeight: FontWeight.w700,
             color: BlushyColors.secondaryText,
@@ -563,7 +566,7 @@ class _BlushyMStudioScreenState extends State<BlushyMStudioScreen> with TickerPr
         const SizedBox(height: 24),
         Text(
           'ACTIVE SEALED CAPSULES',
-          style: GoogleFonts.inter(
+          style: GoogleFonts.poppins(
             fontSize: 9,
             fontWeight: FontWeight.w700,
             color: BlushyColors.secondaryText,
@@ -591,11 +594,11 @@ class _BlushyMStudioScreenState extends State<BlushyMStudioScreen> with TickerPr
                       children: [
                         Text(
                           cap['title'] ?? '',
-                          style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700),
+                          style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w700),
                         ),
                         Text(
                           cap['sub'] ?? '',
-                          style: GoogleFonts.inter(fontSize: 10, color: BlushyColors.secondaryText),
+                          style: GoogleFonts.poppins(fontSize: 10, color: BlushyColors.secondaryText),
                         ),
                       ],
                     ),
@@ -619,7 +622,7 @@ class _BlushyMStudioScreenState extends State<BlushyMStudioScreen> with TickerPr
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
               title: Text(
                 'New Time Capsule',
-                style: GoogleFonts.cormorantGaramond(fontWeight: FontWeight.w700),
+                style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
               ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -696,12 +699,12 @@ class _BlushyMStudioScreenState extends State<BlushyMStudioScreen> with TickerPr
             children: [
               Text(
                 'A LETTER FROM SIA • JUNE',
-                style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w700, color: BlushyColors.primary),
+                style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.w700, color: BlushyColors.primary),
               ),
               const SizedBox(height: 14),
               Text(
                 'Dear Nithya,\n\nDuring your luteal phase, you prioritised rest and post-lunch walks. This decreased stress factors by 14% compared to last cycle.\n\nKeep listening to your body.',
-                style: GoogleFonts.cormorantGaramond(
+                style: GoogleFonts.poppins(
                   fontSize: 16,
                   height: 1.45,
                   color: BlushyColors.text,
@@ -741,12 +744,12 @@ class _BlushyMStudioScreenState extends State<BlushyMStudioScreen> with TickerPr
               children: [
                 Text(
                   date,
-                  style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: BlushyColors.secondaryText),
+                  style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.w700, color: BlushyColors.secondaryText),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   desc,
-                  style: GoogleFonts.inter(fontSize: 13, color: BlushyColors.text, height: 1.35),
+                  style: GoogleFonts.poppins(fontSize: 13, color: BlushyColors.text, height: 1.35),
                 ),
               ],
             ),
@@ -789,12 +792,12 @@ class _BlushyMStudioScreenState extends State<BlushyMStudioScreen> with TickerPr
                 children: [
                   Text(
                     title,
-                    style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: BlushyColors.text),
+                    style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w700, color: BlushyColors.text),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     sub,
-                    style: GoogleFonts.inter(fontSize: 11, color: BlushyColors.secondaryText),
+                    style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.secondaryText),
                   ),
                 ],
               ),
@@ -814,7 +817,7 @@ class _BlushyMStudioScreenState extends State<BlushyMStudioScreen> with TickerPr
         onPressed: _onFloatingActionTap,
         label: Text(
           _getFloatingActionText(),
-          style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white),
+          style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white),
         ),
         icon: Icon(_getFloatingActionIcon(), color: Colors.white, size: 16),
       ),
@@ -835,7 +838,7 @@ class _BlushyMStudioScreenState extends State<BlushyMStudioScreen> with TickerPr
           builder: (context, setModalState) {
             return AlertDialog(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-              title: Text('Voice Reflection', style: GoogleFonts.cormorantGaramond(fontWeight: FontWeight.w700)),
+              title: Text('Voice Reflection', style: GoogleFonts.poppins(fontWeight: FontWeight.w700)),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -844,7 +847,7 @@ class _BlushyMStudioScreenState extends State<BlushyMStudioScreen> with TickerPr
                   const SizedBox(height: 16),
                   Text(
                     _voiceTranscription,
-                    style: GoogleFonts.inter(fontSize: 12, color: BlushyColors.secondaryText),
+                    style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.secondaryText),
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -888,7 +891,7 @@ class _BlushyMStudioScreenState extends State<BlushyMStudioScreen> with TickerPr
         ),
         title: Text(
           _activeJournalTemplate,
-          style: GoogleFonts.cormorantGaramond(
+          style: GoogleFonts.poppins(
             fontSize: 20,
             fontWeight: FontWeight.w700,
             color: BlushyColors.text,
@@ -904,7 +907,7 @@ class _BlushyMStudioScreenState extends State<BlushyMStudioScreen> with TickerPr
             },
             child: Text(
               'Save',
-              style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: BlushyColors.primary),
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w700, color: BlushyColors.primary),
             ),
           ),
         ],
@@ -925,7 +928,7 @@ class _BlushyMStudioScreenState extends State<BlushyMStudioScreen> with TickerPr
                   TextField(
                     controller: _editorController,
                     maxLines: null,
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.poppins(
                       fontSize: 14,
                       color: BlushyColors.text,
                       height: 1.6,
@@ -968,16 +971,16 @@ class _BlushyMStudioScreenState extends State<BlushyMStudioScreen> with TickerPr
                         const SizedBox(width: 6),
                         Text(
                           'AI Decorate',
-                          style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white),
+                          style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white),
                         ),
                       ],
                     ),
                   ),
                 ),
                 const Spacer(),
-                const Icon(Icons.text_fields_rounded, color: Colors.grey),
+                const Icon(Icons.text_fields_rounded, color: BlushyColors.disabled),
                 const SizedBox(width: 16),
-                const Icon(Icons.photo_outlined, color: Colors.grey),
+                const Icon(Icons.photo_outlined, color: BlushyColors.disabled),
               ],
             ),
           ),
@@ -997,7 +1000,7 @@ class _BlushyMStudioScreenState extends State<BlushyMStudioScreen> with TickerPr
               color: const Color(0xFFE8DCC4),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Text('✈️ Paris Stamp', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700)),
+            child: Text('️ Paris Stamp', style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.w700)),
           ),
           const SizedBox(width: 10),
           Container(
@@ -1006,7 +1009,7 @@ class _BlushyMStudioScreenState extends State<BlushyMStudioScreen> with TickerPr
               color: const Color(0xFFD3E4CD),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Text('🌊 Beach Sticker', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700)),
+            child: Text(' Beach Sticker', style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -1023,11 +1026,11 @@ class _BlushyMStudioScreenState extends State<BlushyMStudioScreen> with TickerPr
             decoration: BoxDecoration(
               color: const Color(0xFFFEFBE7),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.amber.shade200),
+              border: Border.all(color: BlushyColors.secondary),
             ),
             child: Text(
-              '🌸 Floral Divider',
-              style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.amber.shade800),
+              ' Floral Divider',
+              style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.w700, color: BlushyColors.warning),
             ),
           ),
         ],
@@ -1046,7 +1049,7 @@ class _BlushyMStudioScreenState extends State<BlushyMStudioScreen> with TickerPr
               color: const Color(0xFFFFF0F2),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Text('💖 Self Love Sticker', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: BlushyColors.primary)),
+            child: Text(' Self Love Sticker', style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.w700, color: BlushyColors.primary)),
           ),
         ],
       ),
