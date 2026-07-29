@@ -177,6 +177,10 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
   String? _ttcWater = '2L';
   String? _ttcExercise = 'Light';
   String? _ttcVitamins = 'Taken';
+  TtcSettings _ttcSettings = TtcSettings();
+  PartnerPermission _partnerPermissions = PartnerPermission();
+  String? _ttcSelectedEmotion;
+  String _monthlyReflectionState = 'pregnancyConfirmed';
 
   // pregnancy interactive states
   String _pregnancyDiscoverTopic = 'Baby Development';
@@ -190,6 +194,10 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
   String? _pregnancyWater = '2.5L';
   String? _pregnancyExercise = 'Light';
   String? _pregnancyVitamins = 'Taken';
+  bool _isEmergencyActive = false;
+  final Set<String> _activeRedFlags = {};
+  PartnerPermission _pregnancyPartnerPermissions = PartnerPermission();
+  PregnancyTransition _pregnancyTransition = PregnancyTransition(isActive: true);
 
   // postpartum interactive states
   String _postpartumDiscoverTopic = 'Physical Recovery';
@@ -287,14 +295,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
   void _loadOnboardingData() {
     try {
       final decoded = BlushyStorage.read('onboarding_temp_profile.json');
-      setState(() {
-        _onboardingData = decoded['profile'] ?? {};
-      });
-    } catch (_) {
-      setState(() {
-        _onboardingData = {};
-      });
-    }
+      if (decoded.isNotEmpty) {
+        setState(() {
+          _onboardingData = decoded['profile'] ?? {};
+        });
+      }
+    } catch (_) {}
   }
 
   void _checkFirstLaunchCoach() {
@@ -7051,6 +7057,42 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Tracking configuration section
+              Theme(
+                data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                child: ExpansionTile(
+                  tilePadding: EdgeInsets.zero,
+                  title: Text(
+                    "TRACKING CONFIGURATION",
+                    style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.primary, letterSpacing: 1.0),
+                  ),
+                  children: [
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text("Cervical Mucus", style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.text)),
+                      value: _ttcSettings.enableCervicalMucus,
+                      activeColor: BlushyColors.primary,
+                      onChanged: (val) => setState(() => _ttcSettings.enableCervicalMucus = val),
+                    ),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text("Ovulation Test (LH)", style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.text)),
+                      value: _ttcSettings.enableLhTracking,
+                      activeColor: BlushyColors.primary,
+                      onChanged: (val) => setState(() => _ttcSettings.enableLhTracking = val),
+                    ),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text("Basal Body Temperature (BBT)", style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.text)),
+                      value: _ttcSettings.enableBbt,
+                      activeColor: BlushyColors.primary,
+                      onChanged: (val) => setState(() => _ttcSettings.enableBbt = val),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 24, color: Color(0xFFF5F0EB)),
+
               // Mood Selector
               Text(
                 "MOOD",
@@ -7087,9 +7129,10 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                             ),
                           ),
                           child: Center(
-                            child: Text(
-                              opt['icon'],
-                              style: const TextStyle(fontSize: 20),
+                            child: Icon(
+                              Icons.face_outlined,
+                              size: 20,
+                              color: isSelected ? BlushyColors.primary : BlushyColors.secondaryText,
                             ),
                           ),
                         ),
@@ -7110,16 +7153,20 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               const Divider(height: 36, color: Color(0xFFF5F0EB)),
 
               // Cervical Mucus
-              _buildLivingHorizontalSelector("CERVICAL MUCUS", mucusOptions, _ttcCervicalMucus, (val) {
-                setState(() => _ttcCervicalMucus = val);
-              }),
-              const Divider(height: 36, color: Color(0xFFF5F0EB)),
+              if (_ttcSettings.enableCervicalMucus) ...[
+                _buildLivingHorizontalSelector("CERVICAL MUCUS", mucusOptions, _ttcCervicalMucus, (val) {
+                  setState(() => _ttcCervicalMucus = val);
+                }),
+                const Divider(height: 36, color: Color(0xFFF5F0EB)),
+              ],
 
               // LH Test Result
-              _buildLivingHorizontalSelector("OVULATION TEST (LH)", lhOptions, _ttcLhTest, (val) {
-                setState(() => _ttcLhTest = val);
-              }),
-              const Divider(height: 36, color: Color(0xFFF5F0EB)),
+              if (_ttcSettings.enableLhTracking) ...[
+                _buildLivingHorizontalSelector("OVULATION TEST (LH)", lhOptions, _ttcLhTest, (val) {
+                  setState(() => _ttcLhTest = val);
+                }),
+                const Divider(height: 36, color: Color(0xFFF5F0EB)),
+              ],
 
               // Intercourse
               _buildLivingHorizontalSelector("INTERCOURSE LOG", intercourseOptions, _ttcIntercourse, (val) {
@@ -7128,35 +7175,37 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               const Divider(height: 36, color: Color(0xFFF5F0EB)),
 
               // BBT Temperature Slider
-              Text(
-                "BASAL BODY TEMPERATURE (BBT)",
-                style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    "${_ttcBbt.toStringAsFixed(1)}C",
-                    style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: BlushyColors.primary),
-                  ),
-                  Expanded(
-                    child: Slider(
-                      value: _ttcBbt,
-                      min: 35.5,
-                      max: 37.8,
-                      activeColor: BlushyColors.primary,
-                      inactiveColor: const Color(0xFFF5F0EB),
-                      onChanged: (val) {
-                        setState(() {
-                          _ttcBbt = val;
-                        });
-                      },
+              if (_ttcSettings.enableBbt) ...[
+                Text(
+                  "BASAL BODY TEMPERATURE (BBT)",
+                  style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "${_ttcBbt.toStringAsFixed(1)}C",
+                      style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: BlushyColors.primary),
                     ),
-                  ),
-                ],
-              ),
-              const Divider(height: 36, color: Color(0xFFF5F0EB)),
+                    Expanded(
+                      child: Slider(
+                        value: _ttcBbt,
+                        min: 35.5,
+                        max: 37.8,
+                        activeColor: BlushyColors.primary,
+                        inactiveColor: const Color(0xFFF5F0EB),
+                        onChanged: (val) {
+                          setState(() {
+                            _ttcBbt = val;
+                          });
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const Divider(height: 36, color: Color(0xFFF5F0EB)),
+              ],
 
               // Prenatal Vitamins
               _buildLivingHorizontalSelector("PRENATAL VITAMINS", vitaminOptions, _ttcVitamins, (val) {
@@ -7545,10 +7594,15 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
 
   // --- SECTION 7: PARTNER MODE ---
   Widget _buildTtcPartner() {
-    final List<Map<String, String>> tasks = [
-      {"task": "Prepare ovulation test strips in the bathroom.", "who": "Partner Task"},
-      {"task": "Incorporate prenatal vitamins with breakfast.", "who": "Coordinated Task"},
-      {"task": "Schedule evening relaxing walk together.", "who": "Coordinated Task"}
+    final permissionsList = [
+      {"label": "Fertile Window", "value": _partnerPermissions.shareFertileWindow, "setter": (bool val) => _partnerPermissions.shareFertileWindow = val},
+      {"label": "Cycle Dates", "value": _partnerPermissions.shareCycleDates, "setter": (bool val) => _partnerPermissions.shareCycleDates = val},
+      {"label": "Appointment Reminders", "value": _partnerPermissions.shareAppointmentReminders, "setter": (bool val) => _partnerPermissions.shareAppointmentReminders = val},
+      {"label": "Care Plan Progress", "value": _partnerPermissions.shareCarePlanProgress, "setter": (bool val) => _partnerPermissions.shareCarePlanProgress = val},
+      {"label": "Mood", "value": _partnerPermissions.shareMood, "setter": (bool val) => _partnerPermissions.shareMood = val},
+      {"label": "Symptoms", "value": _partnerPermissions.shareSymptoms, "setter": (bool val) => _partnerPermissions.shareSymptoms = val},
+      {"label": "Journal", "value": _partnerPermissions.shareJournal, "setter": (bool val) => _partnerPermissions.shareJournal = val},
+      {"label": "Conversations", "value": _partnerPermissions.shareConversations, "setter": (bool val) => _partnerPermissions.shareConversations = val},
     ];
 
     return Column(
@@ -7599,34 +7653,35 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               ),
               const Divider(height: 32, color: Color(0xFFF5F0EB)),
               Text(
-                "PARTNER TASKS & CONVERSATION STARTERS",
+                "GRANULAR SHARING PERMISSIONS",
                 style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText, letterSpacing: 1.0),
               ),
               const SizedBox(height: 12),
-              ...tasks.map((t) {
+              ...permissionsList.map((p) {
+                final label = p['label'] as String;
+                final value = p['value'] as bool;
+                final setter = p['setter'] as Function(bool);
+
                 return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6.0),
+                  padding: const EdgeInsets.symmetric(vertical: 4.0),
                   child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Icon(Icons.check_box_outline_blank, size: 18, color: BlushyColors.primary),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          t['task']!,
-                          style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.text),
-                        ),
+                      Text(
+                        label,
+                        style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.text),
                       ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0x0F2E2623),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          t['who']!,
-                          style: GoogleFonts.poppins(fontSize: 8, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText),
-                        ),
+                      Switch(
+                        value: value,
+                        activeColor: BlushyColors.primary,
+                        activeTrackColor: BlushyColors.primary.withOpacity(0.2),
+                        inactiveThumbColor: Colors.white,
+                        inactiveTrackColor: const Color(0xFFE5E0DA),
+                        onChanged: (bool val) {
+                          setState(() {
+                            setter(val);
+                          });
+                        },
                       ),
                     ],
                   ),
@@ -7802,12 +7857,10 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
 
   // --- SECTION 10: MONTHLY REFLECTION ---
   Widget _buildTtcMonthlyReflection() {
-    final List<String> items = [
-      "You stayed consistent with your health goals this month.",
-      "You learned more about your ovulation pattern.",
-      "You completed daily check-ins throughout your fertile window.",
-      "You've built a stronger understanding of your body's rhythm.",
-    ];
+    final activeReflection = dummyTtcMonthlyReflections.firstWhere(
+      (r) => r.state == _monthlyReflectionState,
+      orElse: () => dummyTtcMonthlyReflections.first,
+    );
 
     return Container(
       padding: const EdgeInsets.all(32),
@@ -7819,8 +7872,162 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "MONTHLY REFLECTION",
+                style: GoogleFonts.poppins(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: BlushyColors.secondaryText,
+                  letterSpacing: 2.0,
+                ),
+              ),
+              PopupMenuButton<String>(
+                onSelected: (val) => setState(() => _monthlyReflectionState = val),
+                icon: const Icon(Icons.tune_outlined, size: 16, color: BlushyColors.secondaryText),
+                itemBuilder: (context) => [
+                  const PopupMenuItem(value: 'pregnancyConfirmed', child: Text("Pregnancy Confirmed")),
+                  const PopupMenuItem(value: 'cycleCompleted', child: Text("Cycle Completed")),
+                  const PopupMenuItem(value: 'incompleteCycle', child: Text("Incomplete Cycle")),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
           Text(
-            "MONTHLY REFLECTION",
+            activeReflection.title,
+            style: GoogleFonts.poppins(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: BlushyColors.text,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            activeReflection.description,
+            style: GoogleFonts.poppins(
+              fontSize: 13,
+              color: BlushyColors.secondaryText,
+              height: 1.45,
+            ),
+          ),
+          const SizedBox(height: 20),
+          ...activeReflection.milestones.map((m) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6.0),
+              child: Row(
+                children: [
+                  const Icon(Icons.favorite, color: BlushyColors.primary, size: 16),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      m,
+                      style: GoogleFonts.poppins(fontSize: 12.5, color: BlushyColors.text, fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+          const SizedBox(height: 16),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFAF6F0),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              activeReflection.helperNote,
+              style: GoogleFonts.poppins(
+                fontSize: 11,
+                color: BlushyColors.secondaryText,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ),
+          if (_monthlyReflectionState == 'pregnancyConfirmed') ...[
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      backgroundColor: const Color(0xFFFDFAF6),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                      title: Text(
+                        "Pregnancy Confirmed",
+                        style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: BlushyColors.text),
+                      ),
+                      content: Text(
+                        "Would you like to switch to your Pregnancy Journey?",
+                        style: GoogleFonts.poppins(color: BlushyColors.secondaryText),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: Text(
+                            "Keep Tracking TTC",
+                            style: GoogleFonts.poppins(color: BlushyColors.secondaryText),
+                          ),
+                        ),
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            setState(() {
+                              _onboardingData['lifeStage'] = 'pregnancy';
+                            });
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text("Transitioning to your Pregnancy Journey..."),
+                                backgroundColor: BlushyColors.primary,
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: BlushyColors.primary,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: Text(
+                            "Switch to Pregnancy",
+                            style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: BlushyColors.primary,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 0,
+                ),
+                child: Text(
+                  "Pregnancy Confirmed",
+                  style: GoogleFonts.poppins(fontSize: 12.5, fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTtcEmotionalCheckIn() {
+    final List<String> emotions = ["Hopeful", "Calm", "Anxious", "Frustrated", "Overwhelmed", "Prefer not to say"];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Text(
+            "DAILY EMOTIONAL CHECK-IN",
             style: GoogleFonts.poppins(
               fontSize: 10,
               fontWeight: FontWeight.w700,
@@ -7828,38 +8035,154 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               letterSpacing: 2.0,
             ),
           ),
-          const SizedBox(height: 20),
-          ...items.map((m) {
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8.0),
-              child: Row(
-                children: [
-                  const Icon(Icons.favorite, color: BlushyColors.primary, size: 20),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Text(
-                      m,
-                      style: GoogleFonts.poppins(fontSize: 13, color: BlushyColors.text, fontWeight: FontWeight.w500),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(28),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: BlushyColors.border, width: 0.8),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "How are you feeling on this planning journey today?",
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: BlushyColors.text,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: emotions.map((emotion) {
+                  final isSelected = _ttcSelectedEmotion == emotion;
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _ttcSelectedEmotion = emotion;
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text("Sia noted your emotion: $emotion"),
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: isSelected ? BlushyColors.primary.withOpacity(0.08) : const Color(0xFFFAF6F0),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isSelected ? BlushyColors.primary : BlushyColors.border,
+                          width: isSelected ? 1.5 : 0.8,
+                        ),
+                      ),
+                      child: Text(
+                        emotion,
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          color: isSelected ? BlushyColors.primary : BlushyColors.text,
+                        ),
+                      ),
                     ),
-                  ),
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTtcConsistencySummary() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Text(
+            "YOUR TTC JOURNEY",
+            style: GoogleFonts.poppins(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: BlushyColors.secondaryText,
+              letterSpacing: 2.0,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(28),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: BlushyColors.border, width: 0.8),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "Consistency Summary",
+                style: GoogleFonts.poppins(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: BlushyColors.text,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                "Focusing on the patterns you build, not pregnancy outcomes.",
+                style: GoogleFonts.poppins(
+                  fontSize: 11,
+                  color: BlushyColors.secondaryText,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildJourneySummaryStat("Time trying", "3 Months"),
+                  _buildJourneySummaryStat("Cycles tracked", "3 Cycles"),
+                  _buildJourneySummaryStat("Ovulation logs", "2 Verified"),
+                  _buildJourneySummaryStat("Check-ins", "48 Complete"),
                 ],
               ),
-            );
-          }).toList(),
-          const Divider(height: 36, color: Color(0xFFF5F0EB)),
-          Text(
-            "SIA'S MONTHLY LETTER SUMMARY",
-            style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+            ],
           ),
-          const SizedBox(height: 8),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildJourneySummaryStat(String label, String value) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
           Text(
-            "\"This cycle, you built a deeper connection to your rhythm. Your steady logging helped identify ovulation patterns and kept stress levels balanced. We are walking this hopeful path together.\"",
+            value,
             style: GoogleFonts.poppins(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: BlushyColors.text,
-              fontStyle: FontStyle.italic,
-              height: 1.45,
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: BlushyColors.primary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.poppins(
+              fontSize: 10,
+              color: BlushyColors.secondaryText,
             ),
           ),
         ],
@@ -7889,6 +8212,10 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
                     children: [
                       _buildTtcHero(displayName),
+                      const SizedBox(height: 32),
+                      _buildTtcConsistencySummary(),
+                      const SizedBox(height: 32),
+                      _buildTtcEmotionalCheckIn(),
                       const SizedBox(height: 32),
                       _buildTtcTimeline(),
                       const SizedBox(height: 32),
@@ -7927,6 +8254,10 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
                     children: [
                       _buildTtcHero(displayName),
+                      const SizedBox(height: 48),
+                      _buildTtcConsistencySummary(),
+                      const SizedBox(height: 48),
+                      _buildTtcEmotionalCheckIn(),
                       const SizedBox(height: 48),
                       _buildTtcTimeline(),
                       const SizedBox(height: 48),
@@ -7970,6 +8301,12 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       _buildTtcHero(displayName),
                       const SizedBox(height: 48),
 
+                      _buildTtcConsistencySummary(),
+                      const SizedBox(height: 48),
+
+                      _buildTtcEmotionalCheckIn(),
+                      const SizedBox(height: 48),
+
                       // Row 2: Fertility Timeline (with Ovary Loop)
                       _buildTtcTimeline(),
                       const SizedBox(height: 48),
@@ -8001,30 +8338,14 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                           // Right Sidebar Panel (35% width) - Sticky top offset 32px
                           Expanded(
                             flex: 35,
-                            child: AnimatedBuilder(
-                              animation: _ttcHomeScrollController,
-                              builder: (context, child) {
-                                double offset = 0.0;
-                                if (_ttcHomeScrollController.hasClients) {
-                                  final double scrollOffset = _ttcHomeScrollController.offset;
-                                  if (scrollOffset > 1250) {
-                                    offset = scrollOffset - 1250 + 32;
-                                  }
-                                }
-                                return Transform.translate(
-                                  offset: Offset(0, offset),
-                                  child: child,
-                                );
-                              },
-                              child: Column(
-                                children: [
-                                  _buildTtcPatterns(),
-                                  const SizedBox(height: 48),
-                                  _buildTtcJourneyTimeline(),
-                                  const SizedBox(height: 48),
-                                  _buildTtcMonthlyReflection(),
-                                ],
-                              ),
+                            child: Column(
+                              children: [
+                                _buildTtcPatterns(),
+                                const SizedBox(height: 48),
+                                _buildTtcJourneyTimeline(),
+                                const SizedBox(height: 48),
+                                _buildTtcMonthlyReflection(),
+                              ],
                             ),
                           ),
                         ],
@@ -8173,13 +8494,97 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
     );
   }
 
+  Widget _buildPregnancyWeeklyThemeCard() {
+    final themeRef = mockMedicalReferences.firstWhere(
+      (ref) => ref.category == "weeklyTheme",
+      orElse: () => MedicalReference(
+        category: "weeklyTheme",
+        title: "Pelvic Floor Strength",
+        content: "Crucial for supporting the bladder, bowel, and uterus as your baby grows. Focus on gentle Kegel exercises.",
+        source: "ACOG Guidelines",
+      ),
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: BlushyColors.border, width: 0.8),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.bookmark_added_outlined, color: BlushyColors.primary, size: 18),
+                  const SizedBox(width: 8),
+                  Text(
+                    "WEEKLY THEME",
+                    style: GoogleFonts.poppins(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: BlushyColors.primary,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                themeRef.title,
+                style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: BlushyColors.text),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                themeRef.content,
+                style: GoogleFonts.poppins(fontSize: 13, color: BlushyColors.secondaryText, height: 1.45),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "Source: ${themeRef.source}",
+                    style: GoogleFonts.poppins(fontSize: 10, fontStyle: FontStyle.italic, color: BlushyColors.secondaryText),
+                  ),
+                  const Icon(Icons.verified_user_outlined, size: 14, color: BlushyColors.success),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   // --- SECTION 2: BABY THIS WEEK ---
   Widget _buildPregnancyBabyThisWeek() {
-    final List<String> highlights = [
-      "Tiny fingers are becoming stronger.",
-      "Hearing continues to develop.",
-      "Baby movements may become more noticeable.",
-    ];
+    final sizeRef = mockMedicalReferences.firstWhere(
+      (ref) => ref.category == "babyGrowth",
+      orElse: () => MedicalReference(
+        category: "babyGrowth",
+        title: "Week 24 Development",
+        content: "Your baby is about the size of a cantaloupe melon.",
+        source: "ACOG Guidelines",
+      ),
+    );
+
+    final milestoneRef = mockMedicalReferences.firstWhere(
+      (ref) => ref.category == "weeklyMilestone",
+      orElse: () => MedicalReference(
+        category: "weeklyMilestone",
+        title: "Week 24 Milestones",
+        content: "Tiny fingers are becoming stronger. Hearing continues to develop. Baby movements may become more noticeable.",
+        source: "ACOG Guidelines",
+      ),
+    );
+
+    final List<String> highlights = milestoneRef.content.split('.').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -8200,7 +8605,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
               ),
               const SizedBox(height: 6),
               Text(
-                "Week 24 Development",
+                sizeRef.title,
                 style: GoogleFonts.poppins(
                   fontSize: 22,
                   fontWeight: FontWeight.w500,
@@ -8219,6 +8624,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
             border: Border.all(color: BlushyColors.border, width: 0.8),
           ),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -8229,7 +8635,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          "Your baby is about the size of a cantaloupe melon.",
+                          sizeRef.content,
                           style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.bold, color: BlushyColors.primary, height: 1.3),
                         ),
                         const SizedBox(height: 16),
@@ -8263,15 +8669,20 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(color: BlushyColors.border, width: 0.8),
                       ),
-                      child: Center(
+                      child: const Center(
                         child: Text(
                           "", // Fetus / baby size visual representation
-                          style: const TextStyle(fontSize: 48),
+                          style: TextStyle(fontSize: 48),
                         ),
                       ),
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                "Source: ${sizeRef.source}",
+                style: GoogleFonts.poppins(fontSize: 9, fontStyle: FontStyle.italic, color: BlushyColors.secondaryText),
               ),
               const SizedBox(height: 24),
               Row(
@@ -8279,7 +8690,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                 children: [
                   OutlinedButton(
                     onPressed: () {
-                      _showArticleDialog(context, "Week 24 Development Details", "At 24 weeks, the baby's lungs are developing surfactant to facilitate independent breathing later. The inner ear balance senses have fully matured, allowing the baby to sense coordination, movement, and mother's position shifts.");
+                      _showArticleDialog(context, "${sizeRef.title} Details", "${sizeRef.content}\n\n${milestoneRef.content}\n\nReference Source: ${sizeRef.source}");
                     },
                     style: OutlinedButton.styleFrom(
                       foregroundColor: BlushyColors.primary,
@@ -9318,6 +9729,9 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
   }
 
   Widget _buildPregnancyHomeOS(PersonalContext pc, BlushyOSState state) {
+    if (_isEmergencyActive) {
+      return _buildEmergencyGuidanceScreen();
+    }
     final String displayName = (pc.userName != null && pc.userName!.isNotEmpty) ? pc.userName! : "there";
 
     return LayoutBuilder(
@@ -9339,6 +9753,8 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
                     children: [
                       _buildPregnancyHero(displayName),
+                      const SizedBox(height: 32),
+                      _buildPregnancyWeeklyThemeCard(),
                       const SizedBox(height: 32),
                       _buildPregnancyBabyThisWeek(),
                       const SizedBox(height: 32),
@@ -9379,6 +9795,8 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
                     children: [
                       _buildPregnancyHero(displayName),
+                      const SizedBox(height: 48),
+                      _buildPregnancyWeeklyThemeCard(),
                       const SizedBox(height: 48),
                       _buildPregnancyBabyThisWeek(),
                       const SizedBox(height: 48),
@@ -9422,6 +9840,8 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
                     children: [
                       // Row 1: Hero
                       _buildPregnancyHero(displayName),
+                      const SizedBox(height: 48),
+                      _buildPregnancyWeeklyThemeCard(),
                       const SizedBox(height: 48),
 
                       // Row 2: Baby & Journey Details
@@ -9505,6 +9925,311 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
           );
         }
       },
+    );
+  }
+
+  Widget _buildEmergencyGuidanceScreen() {
+    return Scaffold(
+      backgroundColor: const Color(0xFFFDF8F7), // Gentle clinical red tint
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Icon(
+                  Icons.report_problem_outlined,
+                  color: Colors.redAccent,
+                  size: 64,
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  "EMERGENCY CLINICAL GUIDANCE",
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.redAccent,
+                    letterSpacing: 2.0,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  "Concerning Symptoms Detected",
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: BlushyColors.text,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.red.withOpacity(0.2), width: 1),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Clinical Safety Protocol:",
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: BlushyColors.text,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      ...mockSafetyRules.emergencyInstructions.map((instruction) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(Icons.arrow_forward, size: 16, color: Colors.redAccent),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                instruction,
+                                style: GoogleFonts.poppins(fontSize: 14, color: BlushyColors.secondaryText),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )).toList(),
+                      const SizedBox(height: 16),
+                      const Divider(),
+                      const SizedBox(height: 8),
+                      Text(
+                        "Action Plan:",
+                        style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        mockSafetyRules.actionPlan,
+                        style: GoogleFonts.poppins(fontSize: 14, color: BlushyColors.secondaryText),
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.phone_in_talk, color: Colors.redAccent),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                mockSafetyRules.emergencyContact,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.redAccent,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 32),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _isEmergencyActive = false;
+                      _activeRedFlags.clear();
+                    });
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: BlushyColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: Text(
+                    "Acknowledge & Return to Dashboard",
+                    style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showUpdatePregnancyJourneyDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          "Update Pregnancy Journey",
+          style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.child_care, color: BlushyColors.primary),
+              title: const Text("Baby has been born"),
+              onTap: () {
+                Navigator.pop(context);
+                _showCompassionateTransitionScreen("Baby has been born", "everydayWellness");
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.favorite_border, color: Colors.redAccent),
+              title: const Text("Pregnancy is no longer ongoing"),
+              onTap: () {
+                Navigator.pop(context);
+                _showLossTransitionOptionsScreen();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.edit_calendar, color: BlushyColors.primary),
+              title: const Text("Due date changed"),
+              onTap: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Due date adjustment saved.")),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.arrow_forward, color: BlushyColors.primary),
+              title: const Text("Continue Pregnancy"),
+              onTap: () => Navigator.pop(context),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showLossTransitionOptionsScreen() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Text(
+          "We are here for you",
+          style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: BlushyColors.primary),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              "We understand this is a difficult time. Your historical data remains safe, and we have paused all active pregnancy alerts.",
+              style: GoogleFonts.poppins(fontSize: 14, color: BlushyColors.secondaryText),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              "Choose your next support path:",
+              style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _showCompassionateTransitionScreen("Recovery", "everydayWellness");
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF9F6F0), foregroundColor: BlushyColors.primary),
+              child: const Text("Recovery & Rest"),
+            ),
+            const SizedBox(height: 8),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _showCompassionateTransitionScreen("Trying to Conceive", "tryingToConceive");
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF9F6F0), foregroundColor: BlushyColors.primary),
+              child: const Text("Trying to Conceive"),
+            ),
+            const SizedBox(height: 8),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _showCompassionateTransitionScreen("Hormonal Health", "hormonalHealth");
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF9F6F0), foregroundColor: BlushyColors.primary),
+              child: const Text("Hormonal Health Support"),
+            ),
+            const SizedBox(height: 8),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _showCompassionateTransitionScreen("General Wellness", "everydayWellness");
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF9F6F0), foregroundColor: BlushyColors.primary),
+              child: const Text("General Wellness"),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showCompassionateTransitionScreen(String destinationName, String targetStage) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.check_circle_outline, color: BlushyColors.primary, size: 48),
+            const SizedBox(height: 16),
+            Text(
+              "Transitioning to your new journey",
+              style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              "Setting up your customized space for $destinationName. All past pregnancy records remain saved.",
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(fontSize: 13, color: BlushyColors.secondaryText),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                setState(() {
+                  _onboardingData['lifeStage'] = targetStage;
+                  _pregnancyTransition = PregnancyTransition(isActive: false, destination: destinationName);
+                });
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: BlushyColors.primary, foregroundColor: Colors.white),
+              child: const Text("Go to Dashboard"),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPartnerPermissionCheckbox(String label, bool value, ValueChanged<bool?> onChanged) {
+    return CheckboxListTile(
+      title: Text(
+        label,
+        style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.text),
+      ),
+      value: value,
+      activeColor: BlushyColors.primary,
+      onChanged: onChanged,
+      controlAffinity: ListTileControlAffinity.leading,
+      contentPadding: EdgeInsets.zero,
+      dense: true,
     );
   }
 
@@ -20018,7 +20743,7 @@ class _BlushyHomeScreenState extends State<BlushyHomeScreen> with SingleTickerPr
 
 class DeveloperContextSimulator extends StatelessWidget {
   final Function(String)? onLifeStageChanged;
-  const DeveloperContextSimulator({super.key, this.onLifeStageChanged});
+  const DeveloperContextSimulator({Key? key, this.onLifeStageChanged}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -20191,6 +20916,145 @@ class DeveloperContextSimulator extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class BlushyReusableTimeline extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final String progressLabel;
+  final String progressDetail;
+  final String badgeText;
+  final double progressPercent;
+  final List<Map<String, dynamic>> milestones;
+
+  const BlushyReusableTimeline({
+    Key? key,
+    required this.title,
+    required this.subtitle,
+    required this.progressLabel,
+    required this.progressDetail,
+    required this.badgeText,
+    required this.progressPercent,
+    required this.milestones,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title.toUpperCase(),
+                style: GoogleFonts.poppins(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: BlushyColors.secondaryText,
+                  letterSpacing: 2.0,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                subtitle,
+                style: GoogleFonts.poppins(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w500,
+                  color: BlushyColors.text,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(32),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: BlushyColors.border, width: 0.8),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          progressLabel,
+                          style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.bold, color: BlushyColors.text),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          progressDetail,
+                          style: GoogleFonts.poppins(fontSize: 12, color: BlushyColors.secondaryText),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: BlushyColors.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      badgeText,
+                      style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: BlushyColors.primary),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: LinearProgressIndicator(
+                  value: progressPercent,
+                  minHeight: 8,
+                  backgroundColor: const Color(0xFFF5F0EB),
+                  valueColor: const AlwaysStoppedAnimation<Color>(BlushyColors.primary),
+                ),
+              ),
+              const SizedBox(height: 28),
+              Text(
+                "JOURNEY MILESTONES",
+                style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.bold, color: BlushyColors.secondaryText, letterSpacing: 1.0),
+              ),
+              const SizedBox(height: 16),
+              ...milestones.map((m) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: Row(
+                    children: [
+                      Icon(m['icon'] as IconData, color: m['color'] as Color, size: 20),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Text(
+                          m['title'] as String,
+                          style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: BlushyColors.text),
+                        ),
+                      ),
+                      Text(
+                        m['status'] as String,
+                        style: GoogleFonts.poppins(fontSize: 11, color: BlushyColors.secondaryText),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

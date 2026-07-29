@@ -219,3 +219,135 @@ class CommunityPost {
     this.professionalGuidance = false,
   });
 }
+
+class TtcMonthlyReflection {
+  final String state; // pregnancyConfirmed, cycleCompleted, incompleteCycle
+  final String title;
+  final String description;
+  final List<String> milestones;
+  final String helperNote;
+
+  TtcMonthlyReflection({
+    required this.state,
+    required this.title,
+    required this.description,
+    required this.milestones,
+    required this.helperNote,
+  });
+}
+
+class PartnerPermission {
+  bool shareFertileWindow;
+  bool shareCycleDates;
+  bool shareAppointmentReminders;
+  bool shareCarePlanProgress;
+  bool shareMood;
+  bool shareSymptoms;
+  bool shareJournal;
+  bool shareConversations;
+
+  PartnerPermission({
+    this.shareFertileWindow = false,
+    this.shareCycleDates = false,
+    this.shareAppointmentReminders = false,
+    this.shareCarePlanProgress = false,
+    this.shareMood = false,
+    this.shareSymptoms = false,
+    this.shareJournal = false,
+    this.shareConversations = false,
+  });
+}
+
+class TtcEmotionalCheckIn {
+  final String emotion; // Hopeful, Calm, Anxious, Frustrated, Overwhelmed, Prefer not to say
+  final String note;
+
+  TtcEmotionalCheckIn({
+    required this.emotion,
+    required this.note,
+  });
+}
+
+class TtcDailyRecommendation {
+  final IconData icon;
+  final String title;
+  final String description;
+  final String reason;
+  final String priority;
+  final String category;
+
+  TtcDailyRecommendation({
+    required this.icon,
+    required this.title,
+    required this.description,
+    required this.reason,
+    required this.priority,
+    required this.category,
+  });
+}
+
+class TtcSettings {
+  bool enableLhTracking;
+  bool enableBbt;
+  bool enableCervicalMucus;
+
+  TtcSettings({
+    this.enableLhTracking = true,
+    this.enableBbt = true,
+    this.enableCervicalMucus = true,
+  });
+}
+
+class RedFlagSymptom {
+  final String id;
+  final String name;
+  final String category; // bleeding, pain, movement, headache, swelling, leakage, contractions
+
+  RedFlagSymptom({
+    required this.id,
+    required this.name,
+    required this.category,
+  });
+}
+
+class SafetyRules {
+  final List<String> redFlagSymptomIds;
+  final List<String> emergencyInstructions;
+  final String actionPlan;
+  final String emergencyContact;
+
+  SafetyRules({
+    required this.redFlagSymptomIds,
+    required this.emergencyInstructions,
+    required this.actionPlan,
+    required this.emergencyContact,
+  });
+}
+
+class MedicalReference {
+  final String category; // babyGrowth, weeklyMilestone, clinicalChecklist, prepGuidance, vaccinationReminder, trimesterEducation
+  final String title;
+  final String content;
+  final String source;
+  final int? week;
+
+  MedicalReference({
+    required this.category,
+    required this.title,
+    required this.content,
+    required this.source,
+    this.week,
+  });
+}
+
+class PregnancyTransition {
+  final bool isActive;
+  final String? exitReason; // loss, birth, etc.
+  final String? destination; // recovery, TTC, hormonalHealth, generalWellness
+
+  PregnancyTransition({
+    required this.isActive,
+    this.exitReason,
+    this.destination,
+  });
+}

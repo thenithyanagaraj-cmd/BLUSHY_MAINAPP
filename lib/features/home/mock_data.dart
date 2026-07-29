@@ -208,3 +208,133 @@ final List<CommunityPost> dummyCommunityPosts = [
     professionalGuidance: false,
   ),
 ];
+
+final List<TtcMonthlyReflection> dummyTtcMonthlyReflections = [
+  TtcMonthlyReflection(
+    state: "pregnancyConfirmed",
+    title: "A New Chapter Awaits",
+    description: "Sia is celebrating with you! This cycle has brought beautiful confirmation.",
+    milestones: [
+      "Tracked fertile window consistency",
+      "Ovulation verified by BBT shift",
+      "Pregnancy confirmed via positive test"
+    ],
+    helperNote: "Let's help you prepare the transition to your customized Pregnancy tracker. Your historical cycle data will be carried forward."
+  ),
+  TtcMonthlyReflection(
+    state: "cycleCompleted",
+    title: "Cycle Completed",
+    description: "A new cycle is beginning. It's a fresh start, and Sia is right here with you.",
+    milestones: [
+      "Completed 28 emotional check-ins",
+      "Tracked 6 basal body temperature values",
+      "Logged LH strip observations"
+    ],
+    helperNote: "Every cycle tracked builds a richer understanding of your unique fertility indicators."
+  ),
+  TtcMonthlyReflection(
+    state: "incompleteCycle",
+    title: "Incomplete Cycle Info",
+    description: "We noticed some gaps in this month's logs. Remember to check in whenever you feel ready.",
+    milestones: [
+      "Tracked 12 cycle days",
+      "Logged 2 symptom observations"
+    ],
+    helperNote: "Consistency is helpful, but taking breaks is also a form of self-care. We'll proceed on your terms."
+  ),
+];
+
+final List<TtcDailyRecommendation> dummyTtcDailyRecommendations = [
+  TtcDailyRecommendation(
+    icon: Icons.favorite_border,
+    title: "Prenatal Nutrient Timing",
+    description: "Take your active folate and prenatal vitamins with your morning meal.",
+    reason: "Folate levels build cell division safety windows when taken consistently.",
+    priority: "High",
+    category: "nutrition"
+  ),
+  TtcDailyRecommendation(
+    icon: Icons.timer_outlined,
+    title: "Basal Temperature Log",
+    description: "Record your body temperature immediately upon waking, before getting out of bed.",
+    reason: "Consistent waking temp tracking identifies the progesterone-driven thermal shift.",
+    priority: "High",
+    category: "medical"
+  ),
+  TtcDailyRecommendation(
+    icon: Icons.spa_outlined,
+    title: "Mild Movement Focus",
+    description: "Enjoy 20 minutes of restorative yoga or moderate walking today.",
+    reason: "Restorative movements reduce elevated stress indicators like cortisol.",
+    priority: "Medium",
+    category: "energy"
+  ),
+  TtcDailyRecommendation(
+    icon: Icons.water_drop_outlined,
+    title: "Hydration Balance",
+    description: "Aim for 8 full glasses of filtered water throughout the day.",
+    reason: "Proper hydration optimizes endometrial perfusion and health dynamics.",
+    priority: "Medium",
+    category: "nutrition"
+  ),
+];
+
+final List<RedFlagSymptom> mockRedFlagSymptoms = [
+  RedFlagSymptom(id: "bleeding_heavy", name: "Heavy vaginal bleeding", category: "bleeding"),
+  RedFlagSymptom(id: "pain_severe", name: "Severe abdominal pain", category: "pain"),
+  RedFlagSymptom(id: "movement_reduced", name: "Reduced fetal movement", category: "movement"),
+  RedFlagSymptom(id: "headache_vision", name: "Severe headache with vision changes", category: "headache"),
+  RedFlagSymptom(id: "swelling_severe", name: "Significant swelling in hands/face", category: "swelling"),
+  RedFlagSymptom(id: "leakage_fluid", name: "Fluid leakage or sudden gush", category: "leakage"),
+  RedFlagSymptom(id: "contractions_preterm", name: "Preterm contractions", category: "contractions"),
+];
+
+final SafetyRules mockSafetyRules = SafetyRules(
+  redFlagSymptomIds: ["bleeding_heavy", "pain_severe", "movement_reduced", "headache_vision", "swelling_severe", "leakage_fluid", "contractions_preterm"],
+  emergencyInstructions: [
+    "Contact your OB/GYN or midwife immediately.",
+    "Go to the nearest emergency room or maternity triage unit.",
+    "Do not take any medications, herbal remedies, or attempt home treatments.",
+    "If you cannot drive yourself or are experiencing extreme pain or heavy bleeding, call 911 immediately.",
+  ],
+  actionPlan: "Bypass normal dashboard logs. Keep resting, monitor symptoms, and seek professional clinical evaluation without delay.",
+  emergencyContact: "Maternity Triage Line: 1-800-555-0199 or 911",
+);
+
+final List<MedicalReference> mockMedicalReferences = [
+  MedicalReference(
+    category: "babyGrowth",
+    title: "Week 24 Development",
+    content: "Your baby is about the size of a cantaloupe melon. Brain growth is extremely rapid, and taste buds are now fully functional.",
+    source: "ACOG Prenatal Care Guidelines",
+    week: 24,
+  ),
+  MedicalReference(
+    category: "weeklyMilestone",
+    title: "Lung Development",
+    content: "Lungs begin producing surfactant, a crucial substance that helps air sacs inflate easily when baby is born.",
+    source: "ACOG Prenatal Care Guidelines",
+    week: 24,
+  ),
+  MedicalReference(
+    category: "clinicalChecklist",
+    title: "Glucose Screening",
+    content: "Schedule your gestational diabetes screening (GTT) between Weeks 24 and 28.",
+    source: "ACOG Recommendations",
+    week: 24,
+  ),
+  MedicalReference(
+    category: "vaccinationReminder",
+    title: "Tdap Vaccination",
+    content: "Ensure you plan for the Tdap vaccine (typically between weeks 27 and 36) to pass whooping cough immunity to your baby.",
+    source: "CDC Immunization Guidelines",
+    week: 24,
+  ),
+  MedicalReference(
+    category: "trimesterEducation",
+    title: "Second Trimester Core Focus",
+    content: "Focus on pelvic floor health, safe sleeping positions (lateral left), and staying properly hydrated.",
+    source: "ACOG Physical Activity Guidelines",
+    week: 24,
+  ),
+];
